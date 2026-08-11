@@ -586,15 +586,8 @@ def _resolve(header, dm, nlq_components=None):
     return result
 
 
-def parse_rpu_payload(payload):
-    """Parse a raw RPU payload starting at the 0x19 rpu_nal_prefix byte
-    (start-code-emulation-prevention still applied, as in a dovi_tool
-    extract-rpu file or an HEVC NAL62 with its 2-byte nal_unit_header
-    already stripped). Returns the resolved dict, or None on any parse
-    failure or malformed input.
-    """
+def _parse_rpu_from_clean_bytes(cleaned):
     try:
-        cleaned = _clear_emulation_prevention(bytes(payload))
         br = BitReader(cleaned)
         if br.read_bits(8) != _RPU_PREFIX:
             return None
@@ -606,6 +599,20 @@ def parse_rpu_payload(payload):
         return _resolve(header, dm, nlq_components)
     except Exception:
         return None
+
+
+def parse_rpu_payload(payload):
+    """Parse a raw RPU payload starting at the 0x19 rpu_nal_prefix byte
+    (start-code-emulation-prevention still applied, as in a dovi_tool
+    extract-rpu file or an HEVC NAL62 with its 2-byte nal_unit_header
+    already stripped). Returns the resolved dict, or None on any parse
+    failure or malformed input.
+    """
+    try:
+        cleaned = _clear_emulation_prevention(bytes(payload))
+    except Exception:
+        return None
+    return _parse_rpu_from_clean_bytes(cleaned)
 
 
 def parse_hevc_nal62(nal):
@@ -629,10 +636,30 @@ def parse_hevc_nal62(nal):
 _AV1_T35_SIGNATURE = bytes((0xB5, 0x00, 0x3B, 0x00, 0x00, 0x08, 0x00))
 
 
+def _parse_variable_bits(br, n):
+    # EMDF variable_bits(n): dolby_vision/src/av1/emdf.rs parse_variable_bits
+    # (dovi_tool, tag libdovi-3.3.1). Each continuation chunk is offset by
+    # (1 << n) on top of a left-shift, not a plain concatenation - ported
+    # bit-for-bit rather than re-derived from the EMDF spec text.
+    value = 0
+    while True:
+        value += br.read_bits(n)
+        if not br.read_bit():  # read_more
+            break
+        value <<= n
+        value += 1 << n
+    return value
+
+
 def parse_av1_t35(payload):
-    """Best-effort AV1 path: the Dolby Vision ITU-T T.35 metadata OBU
-    payload, starting at the country code. Untested against real AV1
-    content (all test assets are HEVC) - see README.
+    """Parse the Dolby Vision ITU-T T.35 metadata OBU payload delivered for
+    AV1 (starting at the country code). Unwraps the EMDF container around
+    the RPU exactly as dovi_tool's DoviRpu::parse_itu_t35_dovi_metadata_obu
+    does (dolby_vision/src/av1/{mod,emdf}.rs, tag libdovi-3.3.1): unlike the
+    HEVC NAL62 path, no start-code emulation prevention is removed here -
+    AV1 T.35 OBU payloads are never escaped that way, only HEVC Annex-B NAL
+    bytestreams are. Returns the resolved dict, or None on any parse
+    failure or malformed input.
     """
     try:
         data = bytes(payload)
@@ -640,4 +667,43 @@ def parse_av1_t35(payload):
         return None
     if len(data) < 7 or data[:7] != _AV1_T35_SIGNATURE:
         return None
-    return parse_rpu_payload(data[7:])
+    try:
+        br = BitReader(data[7:])
+
+        # EMDF container fixed values (emdf.rs parse_emdf_container,
+        # lines 9-25): every field below is a validation gate, not a
+        # variable one, per dovi_tool's own ensure!() checks.
+        if br.read_bits(2) != 0:  # emdf_version
+            return None
+        if br.read_bits(3) != 6:  # key_id
+            return None
+        if br.read_bits(5) != 31:  # emdf_payload_id
+            return None
+        if _parse_variable_bits(br, 5) != 225:  # emdf_payload_id_ext
+            return None
+        if br.read_bit() != 0:  # smploffste
+            return None
+        if br.read_bit() != 0:  # duratione
+            return None
+        if br.read_bit() != 0:  # groupide
+            return None
+        if br.read_bit() != 0:  # codecdatae
+            return None
+        if br.read_bit() != 1:  # discard_unknown_payload
+            return None
+
+        emdf_payload_size = _parse_variable_bits(br, 8)  # emdf.rs line 27
+        if emdf_payload_size <= 0:
+            return None
+
+        # convert_av1_rpu_payload_to_regular (mod.rs lines 52-70): the
+        # emdf_payload_size bytes that follow are the RPU body without its
+        # 0x19 rpu_nal_prefix byte, which libdovi re-synthesizes rather
+        # than carrying in the wrapper.
+        rpu_body = bytearray(_RPU_PREFIX.to_bytes(1, 'big'))
+        for _ in range(emdf_payload_size):
+            rpu_body.append(br.read_bits(8))
+    except Exception:
+        return None
+
+    return _parse_rpu_from_clean_bytes(bytes(rpu_body))

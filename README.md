@@ -32,7 +32,7 @@ is a key with base64-encoded bytes, except `dovi.flags` which is plain text:
 | key | contents |
 |---|---|
 | `dovi.config` | 24-byte dvcC/dvvC configuration record |
-| `dovi.rpu` | HEVC: the escaped NAL unit 62 verbatim (`7C 01` header + payload). AV1: the Dolby Vision ITU-T T.35 OBU payload from the country code (best-effort, untested - see below) |
+| `dovi.rpu` | HEVC: the escaped NAL unit 62 verbatim (`7C 01` header + payload). AV1: the Dolby Vision ITU-T T.35 OBU payload from the country code (see below) |
 | `hdr10plus` | ST 2094-40 ITU-T T.35 payload from the country code (`B5 00 3C 00 01 04`), unescaped |
 | `mdcv` | mastering display colour volume SEI payload, 24 bytes |
 | `cll` | content light level SEI payload, 4 bytes |
@@ -167,12 +167,23 @@ real HDR10+ HEVC capture (`tests/testdata/lake10_prefix.hevc`) and assert
 against values independently confirmed on-device against FFmpeg's own T.35
 decoder (see `~/ce22-docs/hdr10plus-labels-plan.md`).
 
+`sidedata.rpu.parse_av1_t35` follows dovi_tool's own AV1 module
+(`dolby_vision/src/av1/{mod,emdf}.rs`, `DoviRpu::parse_itu_t35_dovi_metadata_obu`)
+for unwrapping the EMDF container around the RPU. It's golden-tested against
+real AV1+DV content: `tests/testdata/dv10_av1_frame{0,700}.{t35,json}` are two
+ITU-T T.35 metadata OBU payloads walked out of a real AV1 elementary stream,
+checked against `dovi_tool`'s own JSON dump of the same title's
+separately-extracted regular-RPU form at the matching frame index. Every one
+of the title's 1450 frames was cross-checked field-for-field this way during
+development (not just the two committed fixtures, to keep the repo small);
+zero mismatches. It's also round-trip tested against the HEVC fixture above
+via a synthetic test-side EMDF writer (the exact inverse of the parser), and
+fuzzed with truncations and header bit flips to confirm the never-raise
+contract. Real-stream verification on an actual AV1+DV playback device is
+still pending.
+
 ## Known limitations
 
-- **AV1 is untested.** `sidedata.rpu.parse_av1_t35` implements the AV1 ITU-T T.35
-  OBU path best-effort (skip the 7-byte T.35/EMDF header, remove start-code
-  emulation prevention, parse as a regular RPU). All test content available
-  for this addon is HEVC; no AV1+DV sample was on hand to validate against.
 - Two L2 or L8/L10 blocks that resolve to the same nits value (e.g. preset
   indices 24 and 25 both mapping to 300 nits) both appear in their list;
   callers that key by nits should expect the list order (RPU order for
@@ -215,7 +226,9 @@ reading, and is test-validated against the output of, **dovi_tool** by
 quietvoid (MIT License, https://github.com/quietvoid/dovi_tool). The MIT
 license text and copyright notice are reproduced verbatim in
 `LICENSES/dovi_tool.MIT`; see `NOTICE.md` for the full attribution. No
-dovi_tool code is vendored.
+dovi_tool code is vendored. The AV1 ITU-T T.35 / EMDF unwrapping in
+`parse_av1_t35` is likewise determined by reading dovi_tool's
+`dolby_vision/src/av1/mod.rs` and `emdf.rs` (tag `libdovi-3.3.1`).
 
 The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` is implemented
 from the ATSC A/341 / ST 2094-40 specification and cross-checked against
