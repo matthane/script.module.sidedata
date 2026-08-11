@@ -13,7 +13,7 @@ one uncatchable exception, a libdovi panic on malformed RPU bytes.
 Result shape of parse_sidedata()
 ---------------------------------
 {
-  'flags': [str, ...],       # tokens from dovi.flags, e.g. ['converted']; [] when absent
+  'flags': [str, ...],       # tokens from the flags key, e.g. ['converted']; [] when absent
   'config': {...} or None,   # dvcC/dvvC configuration record
   'rpu': {...} or None,      # Dolby Vision RPU: profile, header, source, l1-l11
   'hdr10plus': {...} or None,  # ST 2094-40 dynamic metadata, window 0 only
@@ -69,7 +69,9 @@ def parse_sidedata(json_str):
     if not isinstance(data, dict):
         return result
 
-    flags = data.get('dovi.flags')
+    flags = data.get('flags')
+    if flags is None:
+        flags = data.get('dovi.flags')
     if isinstance(flags, str) and flags.strip():
         result['flags'] = flags.split()
 

@@ -98,7 +98,7 @@ logic for it.
 ## Input contract
 
 CoreELEC's `player.process(video.sidedata)` returns a JSON object. Each
-present payload is a key with base64-encoded bytes, except `dovi.flags`,
+present payload is a key with base64-encoded bytes, except `flags`,
 which is plain text:
 
 | key | contents |
@@ -108,7 +108,7 @@ which is plain text:
 | `hdr10plus` | ST 2094-40 ITU-T T.35 payload from the country code (`B5 00 3C 00 01 04`), unescaped |
 | `mdcv` | mastering display colour volume SEI payload, 24 bytes |
 | `cll` | content light level SEI payload, 4 bytes |
-| `dovi.flags` | plain text, space-separated tokens from `{converted, rpu-removed, l5-zeroed}` |
+| `flags` | plain text, space-separated tokens from `{converted, rpu-removed, hdr10plus-removed, l5-zeroed}` |
 
 ## Result shape
 

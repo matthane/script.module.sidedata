@@ -59,7 +59,7 @@ def _build_sidedata_json():
     cll = bytes.fromhex('03e80190')
 
     payload = {
-        'dovi.flags': 'converted rpu-removed',
+        'flags': 'converted rpu-removed',
         'dovi.config': _b64(config),
         'dovi.rpu': _b64(nal62),
         'hdr10plus': _b64(hdr10plus_payload),

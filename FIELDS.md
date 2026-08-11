@@ -10,7 +10,7 @@ consumers; see `README.md` for architecture and usage.
 
 ### Top level
 
-- `flags` (list of str): tokens from `dovi.flags`. See "flags" below.
+- `flags` (list of str): tokens from the label's `flags` key. See "flags" below.
 - `config` (dict or None): parsed `dovi.config` (dvcC/dvvC configuration record).
 - `rpu` (dict or None): parsed `dovi.rpu` (Dolby Vision RPU).
 - `hdr10plus` (dict or None): parsed `hdr10plus` (ST 2094-40 T.35 payload).
@@ -25,8 +25,8 @@ the equivalent absent/empty case.
 
 ### flags
 
-- `flags` (list of str): `dovi.flags` split on whitespace. Vocabulary is
-  `converted`, `rpu-removed`, `l5-zeroed`, per the sidedata contract in
+- `flags` (list of str): the `flags` key split on whitespace. Vocabulary is
+  `converted`, `rpu-removed`, `hdr10plus-removed`, `l5-zeroed`, per the sidedata contract in
   `README.md`. This addon passes the tokens through unchanged; it does not
   interpret them.
 
