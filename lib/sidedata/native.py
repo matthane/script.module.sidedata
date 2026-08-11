@@ -9,6 +9,12 @@
 # shapes unwrapped, per dovi_rpu.rs validated_trimmed_data/
 # av1_validated_trimmed_data) and return the identical result dict shape.
 #
+# The loader tries, in order: SIDEDATA_LIBDOVI_PATH, this addon's own
+# bundled build for the running platform.machine() (native_libs/<arch>/
+# libdovi.so, resolved relative to this file's own path so it works
+# regardless of Kodi's cwd), then the platform's libdovi.so / find_library.
+# No bundled dir for the current arch just falls through to that last step.
+#
 # available() never raises regardless of what's installed. Both parse
 # functions return None on any failure - missing library, bad payload, or
 # anything else - so a caller can always fall back to the pure parser.
@@ -16,6 +22,7 @@
 import ctypes
 import ctypes.util
 import os
+import platform
 
 from .convert import (
     content_type_name,
@@ -288,6 +295,12 @@ def _configure(lib):
 _lib = None
 _load_attempted = False
 _last_error = None
+_NATIVE_LIBS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'native_libs')
+
+
+def _bundled_lib_path():
+    path = os.path.join(_NATIVE_LIBS_DIR, platform.machine(), 'libdovi.so')
+    return path if os.path.isfile(path) else None
 
 
 def _load():
@@ -300,6 +313,9 @@ def _load():
     override = os.environ.get('SIDEDATA_LIBDOVI_PATH')
     if override:
         candidates.append(override)
+    bundled = _bundled_lib_path()
+    if bundled:
+        candidates.append(bundled)
     candidates.append('libdovi.so')
     found = ctypes.util.find_library('dovi')
     if found:

@@ -11,15 +11,20 @@ from-scratch Python implementation of the same bitstream layout. dovi_tool's
 license is reproduced verbatim, with its copyright notice, in
 `LICENSES/dovi_tool.MIT` per the terms of the MIT License.
 
-`lib/sidedata/native.py` additionally binds to a platform-provided
-`libdovi.so` build of the same project at runtime via `ctypes.CDLL`, when one
-is present, as a preferred RPU parsing backend (see README.md). This is a
-dynamic runtime load, not vendoring or static linking: no dovi_tool source or
-compiled artifact is distributed with this addon, and `native.py` itself
-contains no dovi_tool code beyond struct layouts and function signatures
-transcribed from its public C header (`libdovi/rpu_parser.h`) so ctypes can
-call into it correctly. The MIT license terms above apply equally to this
-binding.
+`lib/sidedata/native.py` binds to a `libdovi.so` build of the same project
+at runtime via `ctypes.CDLL`, as a preferred RPU parsing backend (see
+README.md). `lib/sidedata/native_libs/aarch64/libdovi.so` is an unmodified
+compiled build of `libdovi` 3.3.1 (MIT, quietvoid), built from the
+`libdovi-3.3.1` tag of dovi_tool's `dolby_vision` crate per
+`tools/build-libdovi.sh`, and is distributed with this addon on that
+architecture; other architectures fall back to a platform-provided
+`libdovi.so` (dynamic runtime load only, nothing distributed) or this
+addon's own pure-Python parser. `native.py` itself contains no dovi_tool
+code beyond struct layouts and function signatures transcribed from its
+public C header (`libdovi/rpu_parser.h`) so ctypes can call into it
+correctly. The MIT license terms above apply equally to the bundled binary
+and this binding; the license text and copyright notice are reproduced in
+`LICENSES/dovi_tool.MIT`.
 
 The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` was written from
 the ATSC A/341 (ST 2094-40 amendment) specification and cross-checked against

@@ -3,8 +3,9 @@
 Parser library for the raw Dolby Vision / HDR sidedata that Kodi publishes
 via the `player.process(video.sidedata)` infolabel. Stdlib only (`json`,
 `base64`, `struct`, `ctypes`) - no external dependencies, so it runs inside
-Kodi's bundled Python. RPU parsing prefers the platform's native `libdovi`
-when present (via `ctypes`) and otherwise falls back to a bundled
+Kodi's bundled Python. RPU parsing prefers a native `libdovi` (via
+`ctypes`) - this addon ships its own aarch64 build and loads it
+preferentially on that architecture - and otherwise falls back to a bundled
 pure-Python parser - see "RPU backend" below.
 
 Registered as an `xbmc.python.module` extension point (`library="lib"`), so
@@ -32,9 +33,13 @@ The Dolby Vision RPU section (`result['rpu']`) is parsed by one of two
 backends, chosen automatically and transparently - the result shape is
 identical either way:
 
-- **`libdovi`**: the platform's real `libdovi.so` (quietvoid's `dovi_tool`,
-  loaded via `ctypes`), when the image ships one. This is the preferred
-  path: it's the reference implementation itself, not a port of it.
+- **`libdovi`**: a real `libdovi.so` (quietvoid's `dovi_tool`), loaded via
+  `ctypes`. This is the preferred path: it's the reference implementation
+  itself, not a port of it. This addon bundles its own aarch64 build
+  (`lib/sidedata/native_libs/aarch64/libdovi.so`) and loads it
+  preferentially on that architecture; other architectures fall back to
+  the `builtin` parser below unless `SIDEDATA_LIBDOVI_PATH` or the
+  platform itself supplies one.
 - **`builtin`**: this addon's pure-Python RPU parser (`rpu.py`), used when
   no native library is available.
 
@@ -65,9 +70,13 @@ transient bad frame doesn't strand playback on the slower backend for the
 rest of the stream). Loader failure (missing library, wrong ABI, anything
 else) is never raised to callers: `parser_backend()` just reports `'builtin'`.
 
-An env var, `SIDEDATA_LIBDOVI_PATH`, overrides where the loader looks first
-(useful for testing a specific build, on-device or off). Without it the
-loader tries `libdovi.so` then `ctypes.util.find_library('dovi')`.
+The loader tries, in order: the `SIDEDATA_LIBDOVI_PATH` env var (useful for
+testing a specific build, on-device or off), this addon's bundled build for
+the running `platform.machine()` (`native_libs/<arch>/libdovi.so`, resolved
+relative to `native.py`'s own path, never `cwd`), then `libdovi.so` /
+`ctypes.util.find_library('dovi')` as before. No bundled directory for the
+current architecture (e.g. an x86_64 host, an armv7 device) just falls
+through to that last step, same as if bundling didn't exist.
 
 ## Input contract
 
@@ -191,11 +200,13 @@ sidedata.parse_sidedata(json_str) -> {
 addon.xml
 lib/sidedata/__init__.py   parse_sidedata() + the full result-shape docstring
 lib/sidedata/rpu.py         Dolby Vision RPU bit parser, field resolution, native/pure dispatch
-lib/sidedata/native.py      ctypes bindings to the platform's real libdovi, when present
+lib/sidedata/native.py      ctypes bindings to libdovi (bundled or platform-provided)
+lib/sidedata/native_libs/aarch64/libdovi.so   bundled native RPU parser build
 lib/sidedata/hdr10plus.py   ST 2094-40 T.35 parser
 lib/sidedata/statics.py     dvcC/dvvC config, MDCV, CLL
 lib/sidedata/convert.py     PQ<->nits, target-nits snapping, name tables, trim UI scale
 lib/sidedata/_bits.py       shared MSB-first bitstream reader
+tools/build-libdovi.sh   rebuilds the bundled libdovi.so, see UPDATING.md
 tests/                   stdlib unittest, run with: python3 -m unittest discover tests
 ```
 
@@ -234,11 +245,11 @@ profile 7 content: `tests/testdata/dv7fel_frame0.{rpu,json}` and
 
 `tests/test_native.py` is the native/pure conformance suite (see "RPU
 backend" above): its dict-equality checks against every golden fixture are
-`skipUnless` a native `libdovi.so` is available (`SIDEDATA_LIBDOVI_PATH`, or
-`ctypes.util.find_library('dovi')`), with a skip message explaining how to
-build one (`cargo cbuild` against the `libdovi-3.3.1` tag of
-[dovi_tool](https://github.com/quietvoid/dovi_tool)'s `dolby_vision` crate).
-The rest of that file - loader failure modes, the per-payload fallback, and
+`skipUnless` a native `libdovi.so` is available, which the bundled aarch64
+build satisfies automatically there; elsewhere it's `SIDEDATA_LIBDOVI_PATH`
+or `ctypes.util.find_library('dovi')`, with a skip message explaining how
+to build one (`tools/build-libdovi.sh`, see `UPDATING.md`). The rest of
+that file - loader failure modes, the per-payload fallback, and
 `parser_backend()` - runs unconditionally, without needing a native library
 at all.
 
@@ -302,11 +313,13 @@ dovi_tool code is vendored. The AV1 ITU-T T.35 / EMDF unwrapping in
 `parse_av1_t35` is likewise determined by reading dovi_tool's
 `dolby_vision/src/av1/mod.rs` and `emdf.rs` (tag `libdovi-3.3.1`).
 
-`lib/sidedata/native.py` dynamically loads the platform's own `libdovi.so`
-build via `ctypes` at runtime when present; it declares ctypes structs
-mirroring `libdovi-3.3.1`'s public C header (`libdovi/rpu_parser.h`) so it
-can call into that build directly. This is a runtime binding, not vendored
-or linked-in code - see `NOTICE.md`.
+`lib/sidedata/native.py` loads a `libdovi.so` build via `ctypes` at
+runtime; it declares ctypes structs mirroring `libdovi-3.3.1`'s public C
+header (`libdovi/rpu_parser.h`) so it can call into that build directly.
+This addon bundles an unmodified aarch64 build of `libdovi-3.3.1`
+(`lib/sidedata/native_libs/aarch64/libdovi.so`) and loads it in place of a
+platform-provided one on that architecture - see `NOTICE.md` and
+`UPDATING.md`.
 
 The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` is implemented
 from the ATSC A/341 / ST 2094-40 specification and cross-checked against

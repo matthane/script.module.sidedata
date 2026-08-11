@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
@@ -99,6 +100,44 @@ class TestNativeLoader(unittest.TestCase):
         _reset_native_cache()
         self.assertIsNone(native.native_parse_hevc_nal62(b'not a nal'))
         self.assertIsNone(native.native_parse_av1_t35(b'not an obu'))
+
+
+class TestNativeBundledArchFallback(unittest.TestCase):
+    """The bundled aarch64 libdovi.so ships in this repo but can't load on
+    this host's real architecture - platform.machine() is faked to
+    'aarch64' so the bundled path resolves and CDLL genuinely attempts it,
+    proving a wrong-arch load failure falls through the remaining
+    candidates instead of raising.
+    """
+
+    def setUp(self):
+        self._old_env = os.environ.pop('SIDEDATA_LIBDOVI_PATH', None)
+
+    def tearDown(self):
+        if self._old_env is not None:
+            os.environ['SIDEDATA_LIBDOVI_PATH'] = self._old_env
+        _reset_native_cache()
+
+    def test_bundled_path_attempted_and_load_failure_falls_through(self):
+        bundled_path = os.path.join(native._NATIVE_LIBS_DIR, 'aarch64', 'libdovi.so')
+        self.assertTrue(os.path.isfile(bundled_path))
+
+        attempted = []
+        real_cdll = native.ctypes.CDLL
+
+        def _spy_cdll(name, *args, **kwargs):
+            attempted.append(name)
+            return real_cdll(name, *args, **kwargs)
+
+        with mock.patch.object(native.platform, 'machine', return_value='aarch64'), \
+                mock.patch.object(native.ctypes, 'CDLL', side_effect=_spy_cdll):
+            _reset_native_cache()
+            try:
+                native.available()
+            except Exception as exc:  # noqa: BLE001
+                self.fail('native.available() raised: %r' % exc)
+
+        self.assertIn(bundled_path, attempted)
 
 
 class TestRpuDispatchFallback(unittest.TestCase):
