@@ -4,9 +4,14 @@
 # (see tests/test_rpu.py). Field resolution (nits snapping, L10-first target
 # lookup, name tables) mirrors AMLFrameMetadata.h's AMLFillFromDoviRpu, the
 # device-tested reference this addon's diagnostic counterpart reads from.
+#
+# parse_hevc_nal62/parse_av1_t35 below dispatch to native.py's libdovi ctypes
+# bindings when the platform ships them, falling back to the pure parser
+# defined here otherwise; see the bottom of this file and README.md.
 
 import struct
 
+from . import native as _native
 from ._bits import BitReader
 from .convert import (
     content_type_name,
@@ -615,7 +620,7 @@ def parse_rpu_payload(payload):
     return _parse_rpu_from_clean_bytes(cleaned)
 
 
-def parse_hevc_nal62(nal):
+def _pure_parse_hevc_nal62(nal):
     """Parse the escaped HEVC NAL unit 62, as delivered whole by the
     dovi.rpu sidedata key (starting with the two nal_unit_header bytes
     7C 01). Returns the resolved dict, or None if this isn't a DV RPU NAL.
@@ -651,7 +656,7 @@ def _parse_variable_bits(br, n):
     return value
 
 
-def parse_av1_t35(payload):
+def _pure_parse_av1_t35(payload):
     """Parse the Dolby Vision ITU-T T.35 metadata OBU payload delivered for
     AV1 (starting at the country code). Unwraps the EMDF container around
     the RPU exactly as dovi_tool's DoviRpu::parse_itu_t35_dovi_metadata_obu
@@ -707,3 +712,66 @@ def parse_av1_t35(payload):
         return None
 
     return _parse_rpu_from_clean_bytes(bytes(rpu_body))
+
+
+# native/pure dispatch. The pure parser above is also this backend's
+# conformance check (tests/test_native.py runs both over every golden
+# fixture and asserts dict equality) and its permanent fallback: a native
+# failure only degrades that one payload, it never disables native for the
+# next one, so a transient/one-off bad frame can't strand playback on the
+# slower backend. _fallback_logged gates the one-time warning to a real
+# divergence (native missed something the pure parser did resolve), not the
+# constant, expected case of one parser being tried against the other
+# codec's bytes in __init__.py.
+_fallback_logged = False
+
+
+def parser_backend():
+    """'libdovi' when the platform's native bindings loaded, 'builtin' when
+    this module's pure-Python parser is doing the work."""
+    return 'libdovi' if _native.available() else 'builtin'
+
+
+def _log_native_fallback(kind):
+    global _fallback_logged
+    if _fallback_logged:
+        return
+    _fallback_logged = True
+    detail = _native.last_error()
+    message = 'sidedata: native libdovi {} parse failed{}, falling back to the builtin parser'.format(
+        kind, ' ({})'.format(detail) if detail else '')
+    try:
+        import xbmc
+        xbmc.log(message, xbmc.LOGWARNING)
+    except Exception:
+        pass
+
+
+def parse_hevc_nal62(nal):
+    if _native.available():
+        try:
+            result = _native.native_parse_hevc_nal62(nal)
+        except Exception:
+            result = None
+        if result is not None:
+            return result
+        pure_result = _pure_parse_hevc_nal62(nal)
+        if pure_result is not None:
+            _log_native_fallback('HEVC RPU')
+        return pure_result
+    return _pure_parse_hevc_nal62(nal)
+
+
+def parse_av1_t35(payload):
+    if _native.available():
+        try:
+            result = _native.native_parse_av1_t35(payload)
+        except Exception:
+            result = None
+        if result is not None:
+            return result
+        pure_result = _pure_parse_av1_t35(payload)
+        if pure_result is not None:
+            _log_native_fallback('AV1 RPU')
+        return pure_result
+    return _pure_parse_av1_t35(payload)

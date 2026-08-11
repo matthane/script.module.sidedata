@@ -11,6 +11,16 @@ from-scratch Python implementation of the same bitstream layout. dovi_tool's
 license is reproduced verbatim, with its copyright notice, in
 `LICENSES/dovi_tool.MIT` per the terms of the MIT License.
 
+`lib/sidedata/native.py` additionally binds to a platform-provided
+`libdovi.so` build of the same project at runtime via `ctypes.CDLL`, when one
+is present, as a preferred RPU parsing backend (see README.md). This is a
+dynamic runtime load, not vendoring or static linking: no dovi_tool source or
+compiled artifact is distributed with this addon, and `native.py` itself
+contains no dovi_tool code beyond struct layouts and function signatures
+transcribed from its public C header (`libdovi/rpu_parser.h`) so ctypes can
+call into it correctly. The MIT license terms above apply equally to this
+binding.
+
 The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` was written from
 the ATSC A/341 (ST 2094-40 amendment) specification and cross-checked against
 FFmpeg's `av_dynamic_hdr_plus_from_t35` decoder (`libavutil/hdr_dynamic_metadata.c`,

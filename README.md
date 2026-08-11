@@ -1,9 +1,11 @@
 # script.module.sidedata
 
-Pure-Python parser library for the raw Dolby Vision / HDR sidedata that Kodi
-publishes via the `player.process(video.sidedata)` infolabel. Stdlib only
-(`json`, `base64`, `struct`) - no external dependencies, so it runs inside
-Kodi's bundled Python.
+Parser library for the raw Dolby Vision / HDR sidedata that Kodi publishes
+via the `player.process(video.sidedata)` infolabel. Stdlib only (`json`,
+`base64`, `struct`, `ctypes`) - no external dependencies, so it runs inside
+Kodi's bundled Python. RPU parsing prefers the platform's native `libdovi`
+when present (via `ctypes`) and otherwise falls back to a bundled
+pure-Python parser - see "RPU backend" below.
 
 Registered as an `xbmc.python.module` extension point (`library="lib"`), so
 any addon that `<import addon="script.module.sidedata" version="1.0.0"/>` in its
@@ -23,6 +25,49 @@ if result['rpu'] and result['rpu']['l1']:
 `parse_sidedata` never raises: missing or empty input returns the all-None/[]
 shape below, and an unparseable individual payload (malformed frame, garbled
 sidedata) degrades just that section to `None` rather than the whole call.
+
+## RPU backend: native libdovi or the bundled parser
+
+The Dolby Vision RPU section (`result['rpu']`) is parsed by one of two
+backends, chosen automatically and transparently - the result shape is
+identical either way:
+
+- **`libdovi`**: the platform's real `libdovi.so` (quietvoid's `dovi_tool`,
+  loaded via `ctypes`), when the image ships one. This is the preferred
+  path: it's the reference implementation itself, not a port of it.
+- **`builtin`**: this addon's pure-Python RPU parser (`rpu.py`), used when
+  no native library is available.
+
+`sidedata.parser_backend()` reports which one is active (`'libdovi'` or
+`'builtin'`). The bundled pure-Python parser is not just a fallback: it's
+also this addon's own conformance reference. It was built and is still
+tested against `dovi_tool`'s own JSON dump (`tests/test_rpu.py`), and the
+native ctypes bindings in `lib/sidedata/native.py` are in turn validated
+against *it* - `tests/test_native.py` runs every golden RPU fixture this
+repo carries through both backends and asserts the result dicts are
+identical. So the chain is: dovi_tool validates the bundled parser, and the
+bundled parser validates the bindings.
+
+The native path calls `dovi_parse_unspec62_nalu` / `dovi_parse_itu_t35_dovi_metadata_obu`
+directly on the same bytes the pure parser receives, reads the header and
+`vdr_dm_data` structs, and frees everything through libdovi's own
+`dovi_rpu_free*` calls before returning - see `native.py`'s module docstring
+for the struct-layout source of truth. Value scalings, name tables and the
+L10-first L8/L2 target resolution are shared with the pure parser through
+`convert.py`, so the two backends cannot drift in how they render the same
+raw fields; only `el_type` is deliberately sourced differently between them
+(see "RPU enhancement layer type" below).
+
+If a payload makes the native backend throw or return nothing where the
+pure parser can resolve a result, that one payload falls back to the pure
+parser and the divergence is logged once (not disabled going forward - a
+transient bad frame doesn't strand playback on the slower backend for the
+rest of the stream). Loader failure (missing library, wrong ABI, anything
+else) is never raised to callers: `parser_backend()` just reports `'builtin'`.
+
+An env var, `SIDEDATA_LIBDOVI_PATH`, overrides where the loader looks first
+(useful for testing a specific build, on-device or off). Without it the
+loader tries `libdovi.so` then `ctypes.util.find_library('dovi')`.
 
 ## Input contract
 
@@ -145,7 +190,8 @@ sidedata.parse_sidedata(json_str) -> {
 ```
 addon.xml
 lib/sidedata/__init__.py   parse_sidedata() + the full result-shape docstring
-lib/sidedata/rpu.py         Dolby Vision RPU bit parser + field resolution
+lib/sidedata/rpu.py         Dolby Vision RPU bit parser, field resolution, native/pure dispatch
+lib/sidedata/native.py      ctypes bindings to the platform's real libdovi, when present
 lib/sidedata/hdr10plus.py   ST 2094-40 T.35 parser
 lib/sidedata/statics.py     dvcC/dvvC config, MDCV, CLL
 lib/sidedata/convert.py     PQ<->nits, target-nits snapping, name tables, trim UI scale
@@ -186,6 +232,16 @@ The MEL/FEL enhancement layer type is golden-tested against real dual-layer
 profile 7 content: `tests/testdata/dv7fel_frame0.{rpu,json}` and
 `dv7mel_frame0.{rpu,json}` (see "RPU enhancement layer type" below).
 
+`tests/test_native.py` is the native/pure conformance suite (see "RPU
+backend" above): its dict-equality checks against every golden fixture are
+`skipUnless` a native `libdovi.so` is available (`SIDEDATA_LIBDOVI_PATH`, or
+`ctypes.util.find_library('dovi')`), with a skip message explaining how to
+build one (`cargo cbuild` against the `libdovi-3.3.1` tag of
+[dovi_tool](https://github.com/quietvoid/dovi_tool)'s `dolby_vision` crate).
+The rest of that file - loader failure modes, the per-payload fallback, and
+`parser_backend()` - runs unconditionally, without needing a native library
+at all.
+
 ## Known limitations
 
 - Two L2 or L8/L10 blocks that resolve to the same nits value (e.g. preset
@@ -201,7 +257,16 @@ profile 7 content: `tests/testdata/dv7fel_frame0.{rpu,json}` and
 
 ## RPU enhancement layer type (MEL/FEL)
 
-`rpu['header']['el_type']` is ported from Kodi's own ffmpeg codepath
+`rpu['header']['el_type']` is the one field the two backends resolve
+differently by design: the native backend reads it straight off libdovi's
+own `DoviRpuDataHeader.el_type`, while the `builtin` backend below ports the
+decision from Kodi's own ffmpeg codepath. Both determine MEL/FEL from the
+same underlying NLQ residual data and agree on every fixture this repo
+carries (`tests/test_native.py`), but this is the one place a hand-written
+port and the upstream implementation could diverge on unusual content
+without it being this addon's bug.
+
+The `builtin` backend is ported from Kodi's own ffmpeg codepath
 (`DVDVideoCodecFFmpeg.cpp`, `ce-label-registry` branch of `~/ce/xbmc`), not
 from dovi_tool: when `el_spatial_resampling_filter_flag == 1` and
 `disable_residual_flag == 0`, the type defaults to `'MEL'`, upgraded to
@@ -236,6 +301,12 @@ license text and copyright notice are reproduced verbatim in
 dovi_tool code is vendored. The AV1 ITU-T T.35 / EMDF unwrapping in
 `parse_av1_t35` is likewise determined by reading dovi_tool's
 `dolby_vision/src/av1/mod.rs` and `emdf.rs` (tag `libdovi-3.3.1`).
+
+`lib/sidedata/native.py` dynamically loads the platform's own `libdovi.so`
+build via `ctypes` at runtime when present; it declares ctypes structs
+mirroring `libdovi-3.3.1`'s public C header (`libdovi/rpu_parser.h`) so it
+can call into that build directly. This is a runtime binding, not vendored
+or linked-in code - see `NOTICE.md`.
 
 The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` is implemented
 from the ATSC A/341 / ST 2094-40 specification and cross-checked against

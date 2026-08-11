@@ -124,7 +124,12 @@ from . import hdr10plus as _hdr10plus
 from . import rpu as _rpu
 from . import statics as _statics
 
-__all__ = ['parse_sidedata']
+__all__ = ['parse_sidedata', 'parser_backend']
+
+# 'libdovi' when the platform's native RPU bindings loaded (see rpu.py,
+# native.py), 'builtin' when the pure-Python parser below is doing the work.
+# The result shape from parse_sidedata() is identical either way.
+parser_backend = _rpu.parser_backend
 
 
 def _empty_result():

@@ -5,8 +5,8 @@
   </requires>
   <extension point="xbmc.python.module" library="lib"/>
   <extension point="xbmc.addon.metadata">
-    <summary lang="en_GB">Pure-Python parsers for raw Dolby Vision and HDR10+ metadata payloads.</summary>
-    <description lang="en_GB">Parses the DV/HDR sidedata JSON published by player.process(video.sidedata): the RPU (Dolby Vision profiles 4/5/7/8), the dvcC/dvvC configuration record, HDR10+ ST 2094-40 dynamic metadata, and the static MDCV/CLL SEI payloads. Stdlib only, no external dependencies.</description>
+    <summary lang="en_GB">Parsers for raw Dolby Vision and HDR10+ metadata payloads.</summary>
+    <description lang="en_GB">Parses the DV/HDR sidedata JSON published by player.process(video.sidedata): the RPU (Dolby Vision profiles 4/5/7/8), the dvcC/dvvC configuration record, HDR10+ ST 2094-40 dynamic metadata, and the static MDCV/CLL SEI payloads. Stdlib only, no required external dependencies; uses the platform's native libdovi via ctypes for RPU parsing when present, falling back to a bundled pure-Python parser otherwise.</description>
     <platform>all</platform>
     <license>GPL-2.0-or-later</license>
   </extension>
