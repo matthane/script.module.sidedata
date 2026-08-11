@@ -284,6 +284,13 @@ covers the loader and version gate unconditionally, the same way
 - Individual L8 secondary 6-vector saturation/hue trims (block length 19/25)
   are not exposed by libdovi's own `DoviExtMetadataBlockLevel8`, matching
   the scope of the reference this addon's field names mirror.
+- Malformed or corrupted DV RPU payloads can, in rare cases, trigger a
+  panic inside libdovi (Rust, no `catch_unwind` across its C API) that
+  aborts the host process - uncatchable at this Python layer, so
+  `parse_sidedata`'s never-raises guarantee doesn't cover it. This
+  exposure is shared with Kodi core itself, which feeds the same bytes to
+  the same library during DV playback; the real remedy is an upstream fix
+  (panic-catching in libdovi's C API), tracked for a future update.
 
 ## Credits and licensing
 

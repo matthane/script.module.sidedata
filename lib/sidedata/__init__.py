@@ -5,7 +5,9 @@ this package is glue, dispatch and conversion only - see README.md.
 
 Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a
-diagnostic overlay reading a malformed frame stays alive.
+diagnostic overlay reading a malformed frame stays alive. This is a
+Python-layer guarantee only - see README.md's Known limitations for the
+one uncatchable exception (a libdovi panic on malformed RPU bytes).
 
 Result shape of parse_sidedata()
 ---------------------------------

@@ -16,8 +16,11 @@ upstream `dolby_vision`/`libdovi` tag.
    `tests/test_native.py`'s golden test classes must still match
    `dovi_tool`'s own JSON dump field-for-field.
 4. Update the version notes in `NOTICE.md` and `README.md`.
-5. Bump the addon version in `addon.xml`.
-6. Rebuild the addon zip.
+5. Check whether upstream has added FFI panic-catching (`catch_unwind`) to
+   libdovi's C API; if so, remove the panic caveat from README.md's Known
+   limitations.
+6. Bump the addon version in `addon.xml`.
+7. Rebuild the addon zip.
 
 `tools/build-libdovi.sh` cross-builds the bundled aarch64 `.so`. The same
 `cargo cbuild --release --library-type cdylib` invocation, run from inside

@@ -16,7 +16,9 @@
 #
 # available() never raises regardless of what's installed. Both parse
 # functions return None on any failure - missing library, bad payload, or
-# anything else - never raised to the caller.
+# anything else - never raised to the caller. That guarantee is this
+# Python layer only: libdovi itself can panic and abort the process on
+# malformed input, uncatchable from here - see README.md's Known limitations.
 
 import ctypes
 import ctypes.util

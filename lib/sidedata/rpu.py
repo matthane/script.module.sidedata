@@ -5,7 +5,8 @@
 # sidedata key); parse_av1_t35 takes the Dolby Vision ITU-T T.35 metadata
 # OBU payload from the country code (B5 00 3B...). Both return the resolved
 # dict from native.py, or None on any failure - no libdovi loadable,
-# malformed input, or anything else.
+# malformed input, or anything else. This layer never raises, but libdovi
+# itself can still panic and abort the process - see README.md.
 
 from . import native as _native
 
