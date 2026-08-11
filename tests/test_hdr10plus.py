@@ -6,7 +6,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
 from sidedata import avutil  # noqa: E402
 
-TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
+# Golden fixtures are HDR10+ payloads extracted from real commercial
+# titles and are kept out of this public repo; they live on disk outside
+# it instead (see UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the
+# default location.
+_FIXTURES_DIR = os.environ.get(
+    'SIDEDATA_FIXTURES_DIR',
+    os.path.expanduser('~/ce/dvhdr-testdata/module-fixtures'),
+)
+_FIXTURES_AVAILABLE = os.path.isdir(_FIXTURES_DIR) and bool(os.listdir(_FIXTURES_DIR))
+_FIXTURES_SKIP_REASON = (
+    'no fixture directory found - place the golden fixtures at ' +
+    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see UPDATING.md'
+)
+TESTDATA = _FIXTURES_DIR
 _AVUTIL_AVAILABLE = avutil.available()
 _AVUTIL_SKIP_REASON = (
     "no version-matched libavutil found (SIDEDATA_LIBAVUTIL_PATH unset and "
@@ -91,13 +104,21 @@ def _find_first_hdr10plus_sei(data):
 class TestHdr10Plus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with open(os.path.join(TESTDATA, 'lake10_prefix.hevc'), 'rb') as f:
-            data = f.read()
-        cls.payload = _find_first_hdr10plus_sei(data)
+        # Skipped fixture-dependent tests read cls.payload as None below;
+        # a missing fixture directory must not fail setUpClass, since that
+        # would error out the whole class, including the fixture-free
+        # tests further down.
+        cls.payload = None
+        if _FIXTURES_AVAILABLE:
+            with open(os.path.join(TESTDATA, 'lake10_prefix.hevc'), 'rb') as f:
+                data = f.read()
+            cls.payload = _find_first_hdr10plus_sei(data)
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     def test_sei_found(self):
         self.assertIsNotNone(self.payload)
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_AVUTIL_AVAILABLE, _AVUTIL_SKIP_REASON)
     def test_lake_known_values(self):
         result = avutil.parse_t35(self.payload)

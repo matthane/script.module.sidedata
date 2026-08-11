@@ -7,8 +7,9 @@ Checklist for publishing a new version of this addon.
 2. Update the version notes in `NOTICE.md` and `README.md` if the change
    touches the bundled library or its pinned versions (see UPDATING.md).
 3. Run the local test suite: `python3 -m unittest discover tests`. On a
-   host without a matching native libdovi build, the golden DV tests skip;
-   that is expected, see `tests/test_native.py`.
+   host without a matching native libdovi build, or without the external
+   fixture directory, the golden tests skip; that is expected, see
+   UPDATING.md for where the fixtures live.
 4. Commit the version bump.
 5. Tag the commit `vX.Y.Z`, matching the `addon.xml` version exactly. For
    example, if `addon.xml` says version `1.3.0`, tag `v1.3.0`.

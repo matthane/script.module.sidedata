@@ -1,3 +1,34 @@
+# Test fixtures
+
+The golden RPU and HDR10+ fixtures used by `tests/test_native.py`,
+`tests/test_hdr10plus.py`, and `tests/test_parse_sidedata.py` are payloads
+extracted from real commercial titles. They are kept out of this public
+repo and live at `~/ce/dvhdr-testdata/module-fixtures` on the maintainer's
+machine instead. `SIDEDATA_FIXTURES_DIR` overrides that location.
+
+- `signs_frame0.{rpu,json}` and `signs_frame500.{rpu,json}` are real
+  device-captured content (Signs 2002, profile 8.1); frame 500 also
+  exercises L8/L10 target resolution.
+- `dv10_av1_frame{0,700}.{t35,json}` are two ITU-T T.35 metadata OBU
+  payloads walked out of a real AV1 elementary stream, checked against
+  `dovi_tool`'s own JSON dump of the same title's separately-extracted
+  regular-RPU form at the matching frame index. Every one of the title's
+  1450 frames was cross-checked this way during development, not just the
+  two committed fixtures; see git history.
+- `dv7fel_frame0.{rpu,json}` and `dv7mel_frame0.{rpu,json}` are real
+  dual-layer profile 7 content, one FEL title and one MEL title, so
+  `el_type` is checked against real NLQ residual data, not just a
+  synthetic flag flip.
+- `lake10_prefix.hevc` is real HDR10+ SEI-bearing HEVC content used by the
+  HDR10+ golden test.
+
+Every test that reads from this directory is `skipUnless` guarded and
+names the expected directory in its skip message when the directory is
+missing, so `python3 -m unittest discover tests` still passes cleanly
+without the fixtures, just with fewer things actually checked. Run the
+suite once with the fixtures present before trusting a change to the
+parsers.
+
 # Updating the bundled libdovi
 
 Checklist for moving `lib/sidedata/native_libs/aarch64/libdovi.so` to a new

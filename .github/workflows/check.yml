@@ -4,9 +4,13 @@ name: Check
 #
 # Two independent jobs:
 #   * tests  - the stdlib unittest suite (tests/) against the supported
-#              Python range. The golden libdovi tests skip on this runner
-#              since the aarch64 .so only runs on aarch64, and no host build
-#              is present here; that is expected, see tests/test_native.py.
+#              Python range. The golden fixture tests skip on this runner:
+#              the fixtures themselves are payloads from real commercial
+#              titles and are kept out of this repo entirely (see
+#              UPDATING.md), and the aarch64 libdovi.so can't load here
+#              either way. Both are expected; the synthetic tests (loader
+#              behavior, never-raise paths that build payloads inline,
+#              statics vectors) still run and must pass.
 #   * check  - kodi-addon-checker against a `git archive` extraction, i.e.
 #              the exact bytes that ship. `git archive` honors
 #              .gitattributes export-ignore, so tests/, tools/, and

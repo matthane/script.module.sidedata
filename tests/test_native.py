@@ -8,7 +8,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
 from sidedata import convert, native, rpu  # noqa: E402
 
-TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
+# Golden fixtures are RPU payloads extracted from real commercial titles
+# and are kept out of this public repo; they live on disk outside it
+# instead (see UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the default
+# location.
+_FIXTURES_DIR = os.environ.get(
+    'SIDEDATA_FIXTURES_DIR',
+    os.path.expanduser('~/ce/dvhdr-testdata/module-fixtures'),
+)
+_FIXTURES_AVAILABLE = os.path.isdir(_FIXTURES_DIR) and bool(os.listdir(_FIXTURES_DIR))
+_FIXTURES_SKIP_REASON = (
+    'no fixture directory found - place the golden fixtures at ' +
+    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see UPDATING.md'
+)
+TESTDATA = _FIXTURES_DIR
 
 # host-test libdovi build, outside the repo (see tools/build-libdovi.sh and
 # UPDATING.md) - wired in automatically so the golden fixtures below run
@@ -166,6 +179,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
 
         return parsed
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_signs_frame0(self):
         # Signs 2002 is profile 8.1, single layer - no L11, no enhancement
@@ -174,6 +188,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
         self.assertIsNone(parsed['l11'])
         self.assertIsNone(parsed['header']['el_type'])
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_signs_frame500_l8_l10(self):
         parsed = self._check_frame('signs_frame500')
@@ -187,11 +202,13 @@ class TestGoldenHevcFixtures(unittest.TestCase):
         self.assertEqual(l10_by_index[25]['nits'], 300)
         self.assertEqual(l10_by_index[25]['primary_index'], 2)
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_dv7fel_frame0_is_fel(self):
         parsed = self._check_frame('dv7fel_frame0')
         self.assertEqual(parsed['header']['el_type'], 'FEL')
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_dv7mel_frame0_is_mel(self):
         parsed = self._check_frame('dv7mel_frame0')
@@ -200,12 +217,12 @@ class TestGoldenHevcFixtures(unittest.TestCase):
 
 class TestGoldenAv1Fixtures(unittest.TestCase):
     """Golden-tested against real AV1+DV content, through rpu.parse_av1_t35:
-    tests/testdata/dv10_av1_frame{0,700}.t35 were walked out of a real AV1
-    elementary stream, checked against dovi_tool's own JSON dump of the same
-    title's separately-extracted regular-RPU form at the matching frame
-    index (see the git history for the full verification story - every one
-    of the title's 1450 frames was cross-checked field-for-field during
-    development).
+    the dv10_av1_frame{0,700}.t35 fixtures (see UPDATING.md for where they
+    live) were walked out of a real AV1 elementary stream, checked against
+    dovi_tool's own JSON dump of the same title's separately-extracted
+    regular-RPU form at the matching frame index (see the git history for
+    the full verification story - every one of the title's 1450 frames was
+    cross-checked field-for-field during development).
     """
 
     def _check_av1_frame(self, name):
@@ -269,10 +286,12 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
 
         return parsed
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_frame0(self):
         self._check_av1_frame('dv10_av1_frame0')
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_frame700(self):
         self._check_av1_frame('dv10_av1_frame700')
@@ -300,6 +319,7 @@ class TestNeverRaise(unittest.TestCase):
         hdr10plus_style = bytes((0xB5, 0x00, 0x3C, 0x00, 0x01, 0x04)) + bytes(30)
         self.assertIsNone(rpu.parse_av1_t35(hdr10plus_style))
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     def test_av1_truncations_never_raise(self):
         payload, _truth = _load_av1_t35_frame('dv10_av1_frame0')
         for length in range(len(payload) + 1):
@@ -308,6 +328,7 @@ class TestNeverRaise(unittest.TestCase):
             except Exception as exc:  # noqa: BLE001
                 self.fail('parse_av1_t35 raised on truncation to %d bytes: %r' % (length, exc))
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     def test_av1_bit_flips_never_raise(self):
         payload, _truth = _load_av1_t35_frame('dv10_av1_frame0')
         header_region = min(24, len(payload))
@@ -320,6 +341,7 @@ class TestNeverRaise(unittest.TestCase):
                 except Exception as exc:  # noqa: BLE001
                     self.fail('parse_av1_t35 raised on bit flip at byte %d bit %d: %r' % (i, bit, exc))
 
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
     def test_hevc_truncations_never_raise(self):
         raw, _truth = _load_frame('signs_frame0')
         nal62 = b'\x7c\x01' + raw

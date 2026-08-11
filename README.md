@@ -137,54 +137,6 @@ tools/build-libdovi.sh   rebuilds the bundled libdovi.so, see UPDATING.md
 tests/                   stdlib unittest, run with: python3 -m unittest discover tests
 ```
 
-## Testing
-
-```
-python3 -m unittest discover tests
-```
-
-The RPU golden tests run every fixture this repo carries through the real
-`libdovi` bindings and check the result field-by-field against `dovi_tool`'s
-own JSON dump:
-
-- `tests/testdata/signs_frame0.{rpu,json}` and `signs_frame500.{rpu,json}`
-  are real device-captured content (Signs 2002, profile 8.1); frame 500
-  also exercises L8/L10 target resolution.
-- `tests/testdata/dv10_av1_frame{0,700}.{t35,json}` are two ITU-T T.35
-  metadata OBU payloads walked out of a real AV1 elementary stream, checked
-  against `dovi_tool`'s own JSON dump of the same title's
-  separately-extracted regular-RPU form at the matching frame index. Every
-  one of the title's 1450 frames was cross-checked this way during
-  development, not just the two committed fixtures; see git history.
-- `tests/testdata/dv7fel_frame0.{rpu,json}` and `dv7mel_frame0.{rpu,json}`
-  are real dual-layer profile 7 content, one FEL title and one MEL title,
-  so `el_type` is checked against real NLQ residual data, not just a
-  synthetic flag flip.
-
-These tests need a real `libdovi.so` to mean anything, so they're
-`skipUnless` one is available. The bundled aarch64 build satisfies that
-automatically on-device; on other hosts, `SIDEDATA_LIBDOVI_PATH` does. For
-local development this repo's test suite auto-detects a host-arch build at
-`~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64` (outside the repo, never
-packaged) and points `SIDEDATA_LIBDOVI_PATH` at it if present, so the
-golden suite runs for real rather than skipping. See
-`tools/build-libdovi.sh` for building one. The rest of
-`tests/test_native.py`, including the loader failure modes, the
-bundled-arch-mismatch fallback, and the never-raise contract on
-malformed, truncated and bit-flipped input, runs unconditionally without
-needing a native library at all.
-
-HDR10+ golden testing (`tests/test_hdr10plus.py`) works the same way but
-against `libavutil`: it's `skipUnless` a version-matched `libavutil` loads,
-gated on `avutil_version()`'s major (see "Pinned versions"). A typical dev
-host's system ffmpeg is a different major, so that test is expected to skip
-off-device. HDR10+ conformance against this fixture was previously proven
-against compiled ffmpeg (see git history for the pure-Python parser this
-addon carried before this cut, and its device cross-check), and is now
-verified on device against CoreELEC 22's own `libavutil.so.60`.
-`tests/test_avutil.py` covers the loader and version gate unconditionally,
-the same way `test_native.py` does for `libdovi`.
-
 ## Known limitations
 
 - Two L2 or L8/L10 blocks that resolve to the same nits value (e.g. preset
