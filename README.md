@@ -1,4 +1,4 @@
-# script.module.dvhdr
+# script.module.sidedata
 
 Pure-Python parser library for the raw Dolby Vision / HDR sidedata that Kodi
 publishes via the `player.process(video.sidedata)` infolabel. Stdlib only
@@ -6,15 +6,15 @@ publishes via the `player.process(video.sidedata)` infolabel. Stdlib only
 Kodi's bundled Python.
 
 Registered as an `xbmc.python.module` extension point (`library="lib"`), so
-any addon that `<import addon="script.module.dvhdr" version="1.0.0"/>` in its
-`addon.xml` can `import dvhdr`.
+any addon that `<import addon="script.module.sidedata" version="1.0.0"/>` in its
+`addon.xml` can `import sidedata`.
 
 ## Usage
 
 ```python
-import dvhdr
+import sidedata
 
-result = dvhdr.parse_sidedata(xbmc.getInfoLabel('player.process(video.sidedata)'))
+result = sidedata.parse_sidedata(xbmc.getInfoLabel('player.process(video.sidedata)'))
 
 if result['rpu'] and result['rpu']['l1']:
     print(result['rpu']['l1']['max_nits'])
@@ -41,7 +41,7 @@ is a key with base64-encoded bytes, except `dovi.flags` which is plain text:
 ## Result shape
 
 ```
-dvhdr.parse_sidedata(json_str) -> {
+sidedata.parse_sidedata(json_str) -> {
   'flags': [str, ...],           # [] when absent
 
   'config': {                    # or None
@@ -142,12 +142,12 @@ dvhdr.parse_sidedata(json_str) -> {
 
 ```
 addon.xml
-lib/dvhdr/__init__.py   parse_sidedata() + the full result-shape docstring
-lib/dvhdr/rpu.py         Dolby Vision RPU bit parser + field resolution
-lib/dvhdr/hdr10plus.py   ST 2094-40 T.35 parser
-lib/dvhdr/statics.py     dvcC/dvvC config, MDCV, CLL
-lib/dvhdr/convert.py     PQ<->nits, target-nits snapping, name tables, trim UI scale
-lib/dvhdr/_bits.py       shared MSB-first bitstream reader
+lib/sidedata/__init__.py   parse_sidedata() + the full result-shape docstring
+lib/sidedata/rpu.py         Dolby Vision RPU bit parser + field resolution
+lib/sidedata/hdr10plus.py   ST 2094-40 T.35 parser
+lib/sidedata/statics.py     dvcC/dvvC config, MDCV, CLL
+lib/sidedata/convert.py     PQ<->nits, target-nits snapping, name tables, trim UI scale
+lib/sidedata/_bits.py       shared MSB-first bitstream reader
 tests/                   stdlib unittest, run with: python3 -m unittest discover tests
 ```
 
@@ -167,7 +167,7 @@ decoder (see `~/ce22-docs/hdr10plus-labels-plan.md`).
 
 ## Known limitations
 
-- **AV1 is untested.** `dvhdr.rpu.parse_av1_t35` implements the AV1 ITU-T T.35
+- **AV1 is untested.** `sidedata.rpu.parse_av1_t35` implements the AV1 ITU-T T.35
   OBU path best-effort (skip the 7-byte T.35/EMDF header, remove start-code
   emulation prevention, parse as a regular RPU). All test content available
   for this addon is HEVC; no AV1+DV sample was on hand to validate against.
@@ -187,14 +187,14 @@ decoder (see `~/ce22-docs/hdr10plus-labels-plan.md`).
 This addon is licensed **GPL-2.0-or-later** (see `addon.xml`), the CoreELEC/
 Kodi addon convention.
 
-The Dolby Vision RPU bitstream layout in `lib/dvhdr/rpu.py` was determined by
+The Dolby Vision RPU bitstream layout in `lib/sidedata/rpu.py` was determined by
 reading, and is test-validated against the output of, **dovi_tool** by
 quietvoid (MIT License, https://github.com/quietvoid/dovi_tool). The MIT
 license text and copyright notice are reproduced verbatim in
 `LICENSES/dovi_tool.MIT`; see `NOTICE.md` for the full attribution. No
 dovi_tool code is vendored.
 
-The HDR10+ (ST 2094-40) parser in `lib/dvhdr/hdr10plus.py` is implemented
+The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` is implemented
 from the ATSC A/341 / ST 2094-40 specification and cross-checked against
 FFmpeg's `av_dynamic_hdr_plus_from_t35` decoder for field order and bit
 widths.

@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
-from dvhdr import hdr10plus  # noqa: E402
+from sidedata import hdr10plus  # noqa: E402
 
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
 

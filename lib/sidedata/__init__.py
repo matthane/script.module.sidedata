@@ -1,5 +1,5 @@
-"""dvhdr - pure-Python parsers for the raw DV/HDR sidedata payloads that Kodi
-publishes via the player.process(video.sidedata) infolabel.
+"""sidedata - pure-Python parsers for the raw DV/HDR sidedata payloads that
+Kodi publishes via the player.process(video.sidedata) infolabel.
 
 Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a

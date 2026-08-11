@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
-import dvhdr  # noqa: E402
+import sidedata  # noqa: E402
 from test_hdr10plus import _find_first_hdr10plus_sei  # noqa: E402
 
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -52,7 +52,7 @@ def _build_sidedata_json():
 
 class TestParseSidedata(unittest.TestCase):
     def test_all_sections_present(self):
-        result = dvhdr.parse_sidedata(_build_sidedata_json())
+        result = sidedata.parse_sidedata(_build_sidedata_json())
 
         self.assertEqual(result['flags'], ['converted', 'rpu-removed'])
         self.assertIsNotNone(result['config'])
@@ -68,31 +68,31 @@ class TestParseSidedata(unittest.TestCase):
         self.assertEqual(result['cll']['max_fall'], 400)
 
     def test_empty_string(self):
-        result = dvhdr.parse_sidedata('')
+        result = sidedata.parse_sidedata('')
         self.assertEqual(result, {
             'flags': [], 'config': None, 'rpu': None,
             'hdr10plus': None, 'mdcv': None, 'cll': None,
         })
 
     def test_empty_object(self):
-        result = dvhdr.parse_sidedata('{}')
+        result = sidedata.parse_sidedata('{}')
         self.assertEqual(result, {
             'flags': [], 'config': None, 'rpu': None,
             'hdr10plus': None, 'mdcv': None, 'cll': None,
         })
 
     def test_none_input(self):
-        result = dvhdr.parse_sidedata(None)
+        result = sidedata.parse_sidedata(None)
         self.assertEqual(result['flags'], [])
         self.assertIsNone(result['rpu'])
 
     def test_garbage_json_does_not_raise(self):
-        result = dvhdr.parse_sidedata('{not valid json')
+        result = sidedata.parse_sidedata('{not valid json')
         self.assertEqual(result['flags'], [])
         self.assertIsNone(result['config'])
 
     def test_garbage_base64_does_not_raise(self):
-        result = dvhdr.parse_sidedata(json.dumps({'dovi.config': 'not-base64!!'}))
+        result = sidedata.parse_sidedata(json.dumps({'dovi.config': 'not-base64!!'}))
         self.assertIsNone(result['config'])
 
 
