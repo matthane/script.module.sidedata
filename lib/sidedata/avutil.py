@@ -1,25 +1,27 @@
-# ctypes binding to the platform's libavutil (FFmpeg), used for HDR10+
+# ctypes binding to CoreELEC's own libavutil (FFmpeg), used for HDR10+
 # (ST 2094-40) T.35 parsing via av_dynamic_hdr_plus_from_t35. Struct layouts
-# mirror ffmpeg-8.1.2's libavutil/hdr_dynamic_metadata.h field-for-field -
-# the exact ffmpeg CE-22 ships - since av_dynamic_hdr_plus_from_t35 fills a
-# plain stack struct, not an opaque allocation, a layout slip here is silent
-# stack corruption, not a crash. Never bundled: the CE image's own
-# libavutil.so.60 is loaded at runtime, same as any other Kodi codec lib.
+# mirror ffmpeg-8.1.2's libavutil/hdr_dynamic_metadata.h field-for-field,
+# the exact ffmpeg CoreELEC 22 ships, since av_dynamic_hdr_plus_from_t35
+# fills a plain stack struct, not an opaque allocation, so a layout slip
+# here is silent stack corruption, not a crash. Never bundled: the CE
+# image's own libavutil.so.60 is loaded at runtime, same as any other Kodi
+# codec lib.
 #
 # Field extraction (which struct fields feed which output keys, the 6-byte
 # T.35 header, the num_windows >= 1 gate) mirrors AMLFillFromHdr10PlusT35
 # (CoreELEC ce-label-registry, device-tested; ~/ce/xbmc
 # AMLFrameMetadata.h). Only window 0 is exposed, matching that
-# implementation - real content is essentially always num_windows == 1.
+# implementation; real content is essentially always num_windows == 1.
 #
 # The loader tries, in order: SIDEDATA_LIBAVUTIL_PATH, 'libavutil.so.60',
 # then ctypes.util.find_library('avutil'). A loaded library is only kept if
-# avutil_version()'s major matches _LIBAVUTIL_VERSION_MAJOR below - the
+# avutil_version()'s major matches _LIBAVUTIL_VERSION_MAJOR below. The
 # struct layout above is pinned to that ABI, so a mismatched major is
 # treated as unavailable rather than risking silent corruption.
 #
-# available() never raises. parse_t35() returns None on any failure -
-# missing library, version mismatch, bad payload, or anything else.
+# available() never raises. parse_t35() returns None on any failure,
+# whether a missing library, a version mismatch, a bad payload, or
+# anything else.
 
 import ctypes
 import ctypes.util

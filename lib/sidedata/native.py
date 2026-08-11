@@ -1,5 +1,5 @@
 # ctypes bindings to the platform libdovi (quietvoid/dovi_tool), the sole
-# RPU parsing engine - see rpu.py, which just dispatches here. Struct
+# RPU parsing engine; see rpu.py, which just dispatches here. Struct
 # layouts mirror libdovi-3.3.1's rpu_parser.h field-for-field (see
 # README.md); a layout slip here is silent corruption, not a crash.
 #
@@ -15,10 +15,11 @@
 # No bundled dir for the current arch just falls through to that last step.
 #
 # available() never raises regardless of what's installed. Both parse
-# functions return None on any failure - missing library, bad payload, or
-# anything else - never raised to the caller. That guarantee is this
-# Python layer only: libdovi itself can panic and abort the process on
-# malformed input, uncatchable from here - see README.md's Known limitations.
+# functions return None on any failure, whether a missing library, a bad
+# payload, or anything else; that is never raised to the caller. That
+# guarantee is this Python layer only: libdovi itself can panic and abort
+# the process on malformed input, uncatchable from here. See README.md's
+# Known limitations.
 
 import ctypes
 import ctypes.util
@@ -339,7 +340,7 @@ def available():
 
 def last_error():
     # best-effort diagnostic only (dovi_rpu_get_error's text from the most
-    # recent failed parse on any thread) - never authoritative, since Kodi
+    # recent failed parse on any thread), never authoritative, since Kodi
     # calls into this module from more than one thread
     return _last_error
 

@@ -121,7 +121,7 @@ def whitepoint_name(code):
 
 # HDR10+ (ST 2094-40) raw code scalings, ffmpeg's own denominators from
 # av_dynamic_hdr_plus_from_t35 (libavutil/hdr_dynamic_metadata.c: rgb_den,
-# fraction_pixel_den, knee_point_den) - avutil.py hands these the .num off
+# fraction_pixel_den, knee_point_den). avutil.py hands these the .num off
 # each AVRational it reads, mirroring what the pure parser did with the raw
 # bitstream code directly
 def hdr10plus_rgb_nits(code):

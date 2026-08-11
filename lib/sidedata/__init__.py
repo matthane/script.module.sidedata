@@ -1,13 +1,14 @@
-"""sidedata - parsers for the raw DV/HDR sidedata payloads that Kodi
-publishes via the player.process(video.sidedata) infolabel. The RPU and
-HDR10+ payloads are parsed by real engines (libdovi, libavutil) via ctypes;
-this package is glue, dispatch and conversion only - see README.md.
+"""sidedata, a CoreELEC addon: parsers for the raw DV/HDR sidedata payloads
+that CoreELEC's Amlogic video player publishes via the
+player.process(video.sidedata) infolabel (CoreELEC 22, Amlogic only). The
+RPU and HDR10+ payloads are parsed by real engines (libdovi, libavutil) via
+ctypes; this package is glue, dispatch and conversion only. See README.md.
 
 Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a
 diagnostic overlay reading a malformed frame stays alive. This is a
-Python-layer guarantee only - see README.md's Known limitations for the
-one uncatchable exception (a libdovi panic on malformed RPU bytes).
+Python-layer guarantee only. See README.md's Known limitations for the
+one uncatchable exception, a libdovi panic on malformed RPU bytes.
 
 Result shape of parse_sidedata()
 ---------------------------------
