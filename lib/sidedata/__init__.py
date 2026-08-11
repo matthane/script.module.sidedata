@@ -24,6 +24,10 @@ Result shape of parse_sidedata()
       'vdr_rpu_profile': int, 'vdr_rpu_level': int,
       'bl_bit_depth': int or None, 'el_bit_depth': int or None,
       'vdr_bit_depth': int or None,   # meaningful as content depth only with a FEL residual
+      'el_spatial_resampling_filter_flag': bool, 'disable_residual_flag': bool,
+      'el_type': 'MEL' or 'FEL' or None,   # None when there is no enhancement layer at all;
+                                            # see rpu.py's _decide_el_type for the algorithm
+                                            # (ported from Kodi's DVDVideoCodecFFmpeg.cpp)
     },
     'compressed': bool,          # dv_md_compression active; source PQ zeroed when true
     'cm_version': '2.9' or '4.0' or None,
@@ -107,7 +111,10 @@ Primary names (l9/l10 'name'/'primary_name'), content type names (l11) and the
 whitepoint Kelvin formula mirror the device-verified AMLFrameMetadata.h
 reference (see convert.py). The RPU bitstream parse follows dovi_tool's
 parsing logic (quietvoid, MIT) and is validated against dovi_tool's own JSON
-output - see README.md and tests/test_rpu.py.
+output - see README.md and tests/test_rpu.py. The rpu['header']['el_type']
+decision (MEL/FEL) is ported from Kodi's own ffmpeg codepath instead
+(DVDVideoCodecFFmpeg.cpp), since dovi_tool's own struct fields don't carry
+this classification the same way - see README.md's caveats.
 """
 
 import base64

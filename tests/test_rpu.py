@@ -129,6 +129,15 @@ class TestRpuAgainstDoviTool(unittest.TestCase):
         if 254 in blocks:
             self.assertEqual(parsed['cm_version'], '4.0')
 
+        # el_type: Signs 2002 is profile 8.1, single layer - no enhancement
+        # layer at all, cross-checked against the header truth fields too
+        header_truth = truth['header']
+        self.assertEqual(parsed['header']['el_spatial_resampling_filter_flag'],
+                          header_truth['el_spatial_resampling_filter_flag'])
+        self.assertEqual(parsed['header']['disable_residual_flag'],
+                          header_truth['disable_residual_flag'])
+        self.assertIsNone(parsed['header']['el_type'])
+
         return parsed
 
     def test_frame0(self):
@@ -153,6 +162,73 @@ class TestRpuAgainstDoviTool(unittest.TestCase):
         self.assertIsNone(rpu.parse_rpu_payload(os.urandom(64)))
         self.assertIsNone(rpu.parse_hevc_nal62(b'not a nal'))
         self.assertIsNone(rpu.parse_av1_t35(b'not an obu'))
+
+
+_MEL_DEFAULT_COMPONENT = {
+    'nlq_offset': 0,
+    'vdr_in_max': 8388608,  # 1 << 23, ffmpeg's literal "no residual" constant
+    'linear_deadzone_slope': 0,
+    'linear_deadzone_threshold': 0,
+}
+
+
+def _mel_default_components():
+    return [dict(_MEL_DEFAULT_COMPONENT) for _ in range(3)]
+
+
+class TestDecideElType(unittest.TestCase):
+    """Synthetic-input coverage for rpu._decide_el_type, the MEL/FEL
+    decision ported from Kodi's DVDVideoCodecFFmpeg.cpp. No real FEL stream
+    fixture exists on host (see README's Known limitations); this exercises
+    the decision function directly instead.
+    """
+
+    def test_flag_condition_false_is_none(self):
+        components = _mel_default_components()
+        components[0]['nlq_offset'] = 5  # would be FEL if the flag condition held
+        self.assertIsNone(rpu._decide_el_type(False, components))
+        self.assertIsNone(rpu._decide_el_type(False, None))
+
+    def test_condition_true_all_default_is_mel(self):
+        self.assertEqual(rpu._decide_el_type(True, _mel_default_components()), 'MEL')
+
+    def test_condition_true_missing_components_is_none(self):
+        # the flag condition and NLQ-block presence should never disagree in
+        # a valid stream, but never guess if they do
+        self.assertIsNone(rpu._decide_el_type(True, None))
+        self.assertIsNone(rpu._decide_el_type(True, []))
+
+    def test_condition_true_nonzero_nlq_offset_is_fel(self):
+        components = _mel_default_components()
+        components[1]['nlq_offset'] = 3
+        self.assertEqual(rpu._decide_el_type(True, components), 'FEL')
+
+    def test_condition_true_nondefault_vdr_in_max_is_fel(self):
+        components = _mel_default_components()
+        components[0]['vdr_in_max'] = 8388609
+        self.assertEqual(rpu._decide_el_type(True, components), 'FEL')
+
+    def test_condition_true_nonzero_linear_deadzone_slope_is_fel(self):
+        components = _mel_default_components()
+        components[2]['linear_deadzone_slope'] = 1
+        self.assertEqual(rpu._decide_el_type(True, components), 'FEL')
+
+    def test_condition_true_nonzero_linear_deadzone_threshold_is_fel(self):
+        components = _mel_default_components()
+        components[0]['linear_deadzone_threshold'] = 1
+        self.assertEqual(rpu._decide_el_type(True, components), 'FEL')
+
+
+class TestCombineCoef(unittest.TestCase):
+    def test_fixed_point_combines_int_and_fraction(self):
+        # int part 1, fraction 0, 23-bit denom -> 1 << 23, ffmpeg's constant
+        self.assertEqual(rpu._combine_coef(1, 0, 0, 23), 8388608)
+        self.assertEqual(rpu._combine_coef(0, 5, 0, 23), 5)
+
+    def test_float_coded_reinterprets_bits(self):
+        import struct as _struct
+        frac = int.from_bytes(_struct.pack('>f', 1.0), 'big')
+        self.assertEqual(rpu._combine_coef(0, frac, 1, 23), 1 << 23)
 
 
 if __name__ == '__main__':

@@ -58,6 +58,8 @@ sidedata.parse_sidedata(json_str) -> {
       'vdr_rpu_profile': int, 'vdr_rpu_level': int,
       'bl_bit_depth': int or None, 'el_bit_depth': int or None,
       'vdr_bit_depth': int or None,   # content depth only meaningful with a FEL residual
+      'el_spatial_resampling_filter_flag': bool, 'disable_residual_flag': bool,
+      'el_type': 'MEL' or 'FEL' or None,   # None = no enhancement layer (e.g. profile 8)
     },
     'compressed': bool,          # dv_md_compression active; source PQ zeroed when true
     'cm_version': '2.9' or '4.0' or None,
@@ -181,6 +183,27 @@ decoder (see `~/ce22-docs/hdr10plus-labels-plan.md`).
 - Individual L8 secondary 6-vector saturation/hue trims (block length 19/25)
   are parsed structurally (to keep bit alignment correct) but not exposed,
   matching the scope of the reference this parser mirrors.
+- **No real FEL stream fixture exists on host.** `rpu['header']['el_type']`
+  ('MEL'/'FEL'/None) is unit-tested against synthetic inputs for the decision
+  function itself (`tests/test_rpu.py`'s `TestDecideElType`), and against the
+  Signs 2002 fixture (a real single-layer profile 8 capture, correctly
+  `None`). The MEL-vs-FEL branch of the decision has not been exercised
+  against a real dual-layer profile 4/7 RPU on this host; device testing
+  covers that case.
+
+## RPU enhancement layer type (MEL/FEL)
+
+`rpu['header']['el_type']` is ported from Kodi's own ffmpeg codepath
+(`DVDVideoCodecFFmpeg.cpp`, `ce-label-registry` branch of `~/ce/xbmc`), not
+from dovi_tool: when `el_spatial_resampling_filter_flag == 1` and
+`disable_residual_flag == 0`, the type defaults to `'MEL'`, upgraded to
+`'FEL'` the moment any of the three color components carries a non-default
+NLQ residual coefficient (`nlq_offset != 0`, `vdr_in_max != 8388608`,
+`linear_deadzone_slope != 0`, or `linear_deadzone_threshold != 0` - the
+`8388608 = 1 << 23` constant is ffmpeg's own literal "no residual" value,
+mirrored as-is rather than derived, since real content's
+`coefficient_log2_denom` is always 23). Outside that flag condition there is
+no enhancement layer at all and `el_type` is `None`.
 
 ## Credits and licensing
 
@@ -198,6 +221,12 @@ The HDR10+ (ST 2094-40) parser in `lib/sidedata/hdr10plus.py` is implemented
 from the ATSC A/341 / ST 2094-40 specification and cross-checked against
 FFmpeg's `av_dynamic_hdr_plus_from_t35` decoder for field order and bit
 widths.
+
+The `el_type` (MEL/FEL) decision in `lib/sidedata/rpu.py` is ported from
+Kodi's own `DVDVideoCodecFFmpeg.cpp` (`ce-label-registry` branch,
+`~/ce/xbmc`) - Kodi is GPL-2.0-or-later, the same license this addon ships
+under, so no separate license file is needed for that portion; no Kodi code
+is vendored.
 
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10
 primaries name table, the L11 content-type and whitepoint tables, and the

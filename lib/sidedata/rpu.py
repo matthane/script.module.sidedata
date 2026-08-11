@@ -5,6 +5,8 @@
 # lookup, name tables) mirrors AMLFrameMetadata.h's AMLFillFromDoviRpu, the
 # device-tested reference this addon's diagnostic counterpart reads from.
 
+import struct
+
 from ._bits import BitReader
 from .convert import (
     content_type_name,
@@ -93,6 +95,24 @@ def _parse_header(br):
     return h
 
 
+# MEL vs FEL, per Kodi's own ffmpeg codepath (DVDVideoCodecFFmpeg.cpp,
+# ce-label-registry branch): condition_met is
+# el_spatial_resampling_filter_flag == 1 and disable_residual_flag == 0;
+# false means there is no enhancement layer type at all. When met, any
+# component carrying a non-default NLQ residual coefficient makes it FEL,
+# otherwise MEL. 8388608 (1 << 23) is ffmpeg's own literal "no residual"
+# constant for vdr_in_max, not derived, since real content's
+# coefficient_log2_denom is always 23.
+def _decide_el_type(condition_met, nlq_components):
+    if not condition_met or not nlq_components:
+        return None
+    for c in nlq_components:
+        if (c['nlq_offset'] != 0 or c['vdr_in_max'] != 8388608 or
+                c['linear_deadzone_slope'] != 0 or c['linear_deadzone_threshold'] != 0):
+            return 'FEL'
+    return 'MEL'
+
+
 def _guessed_profile(header):
     if header['vdr_rpu_profile'] == 0:
         return 5 if header['bl_video_full_range_flag'] else 0
@@ -103,10 +123,20 @@ def _guessed_profile(header):
     return 0
 
 
-# reshaping curves and, for profile 7, the NLQ residual parameters. None of
-# this is exposed by the public API; it only needs to be walked correctly so
-# the reader lands on vdr_dm_data at the right bit offset.
-def _skip_rpu_data_mapping(br, header):
+# exp-golomb "coef" value: an fixed(0)/float(1) coded value combined with its
+# fractional bits into one comparable magnitude, matching ffmpeg's
+# get_ue_coef() (libavcodec/dovi_rpudec.c) - the reference the el_type
+# decision below is ported from
+def _combine_coef(int_part, frac_bits, coeff_data_type, log2_denom):
+    if coeff_data_type == 0:
+        return (int_part << log2_denom) | frac_bits
+    (value,) = struct.unpack('>f', frac_bits.to_bytes(4, 'big'))
+    return int(value * (1 << log2_denom))
+
+
+# reshaping curves are walked but not exposed; the NLQ residual parameters
+# (profile 7 only) are returned per component since they decide MEL vs FEL
+def _parse_rpu_data_mapping(br, header):
     br.read_ue()  # vdr_rpu_id
     br.read_ue()  # mapping_color_space
     br.read_ue()  # mapping_chroma_format_idc
@@ -158,20 +188,36 @@ def _skip_rpu_data_mapping(br, header):
             else:
                 raise ValueError('invalid mapping_idc')
 
+    nlq_components = None
     if has_nlq:
+        nlq_components = []
         el_bit_depth = header['el_bit_depth_minus8'] + 8
+        coeff_data_type = header['coefficient_data_type']
         for _cmp in range(_NUM_COMPONENTS):
-            br.read_bits(el_bit_depth)  # nlq_offset
-            if coeff_int:
-                br.read_ue()  # vdr_in_max_int
-            br.read_bits(coeff_len)  # vdr_in_max
+            nlq_offset = br.read_bits(el_bit_depth)
+
+            vdr_in_max_int = br.read_ue() if coeff_int else 0
+            vdr_in_max_frac = br.read_bits(coeff_len)
+            vdr_in_max = _combine_coef(vdr_in_max_int, vdr_in_max_frac, coeff_data_type, coeff_len)
+
             # LinearDeadzone is the only defined nlq_method_idc value
-            if coeff_int:
-                br.read_ue()  # linear_deadzone_slope_int
-            br.read_bits(coeff_len)  # linear_deadzone_slope
-            if coeff_int:
-                br.read_ue()  # linear_deadzone_threshold_int
-            br.read_bits(coeff_len)  # linear_deadzone_threshold
+            slope_int = br.read_ue() if coeff_int else 0
+            slope_frac = br.read_bits(coeff_len)
+            linear_deadzone_slope = _combine_coef(slope_int, slope_frac, coeff_data_type, coeff_len)
+
+            threshold_int = br.read_ue() if coeff_int else 0
+            threshold_frac = br.read_bits(coeff_len)
+            linear_deadzone_threshold = _combine_coef(threshold_int, threshold_frac, coeff_data_type,
+                                                        coeff_len)
+
+            nlq_components.append({
+                'nlq_offset': nlq_offset,
+                'vdr_in_max': vdr_in_max,
+                'linear_deadzone_slope': linear_deadzone_slope,
+                'linear_deadzone_threshold': linear_deadzone_threshold,
+            })
+
+    return nlq_components
 
 
 def _parse_ext_block(br, level, length):
@@ -391,7 +437,9 @@ def _primaries_coords(block):
     }
 
 
-def _resolve(header, dm):
+def _resolve(header, dm, nlq_components=None):
+    el_flag_condition = (header['el_spatial_resampling_filter_flag'] and
+                          not header['disable_residual_flag'])
     result = {
         'profile': _guessed_profile(header),
         'header': {
@@ -402,6 +450,9 @@ def _resolve(header, dm):
             'bl_bit_depth': header['bl_bit_depth_minus8'] + 8 if header['vdr_seq_info_present_flag'] else None,
             'el_bit_depth': header['el_bit_depth_minus8'] + 8 if header['vdr_seq_info_present_flag'] else None,
             'vdr_bit_depth': header['vdr_bit_depth_minus8'] + 8 if header['vdr_seq_info_present_flag'] else None,
+            'el_spatial_resampling_filter_flag': header['el_spatial_resampling_filter_flag'],
+            'disable_residual_flag': header['disable_residual_flag'],
+            'el_type': _decide_el_type(el_flag_condition, nlq_components),
         },
         'compressed': False,
         'cm_version': None,
@@ -548,10 +599,11 @@ def parse_rpu_payload(payload):
         if br.read_bits(8) != _RPU_PREFIX:
             return None
         header = _parse_header(br)
+        nlq_components = None
         if not header['use_prev_vdr_rpu_flag']:
-            _skip_rpu_data_mapping(br, header)
+            nlq_components = _parse_rpu_data_mapping(br, header)
         dm = _parse_vdr_dm_data(br, header) if header['vdr_dm_metadata_present_flag'] else None
-        return _resolve(header, dm)
+        return _resolve(header, dm, nlq_components)
     except Exception:
         return None
 
