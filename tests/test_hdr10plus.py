@@ -4,9 +4,18 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
-from sidedata import hdr10plus  # noqa: E402
+from sidedata import avutil  # noqa: E402
 
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
+_AVUTIL_AVAILABLE = avutil.available()
+_AVUTIL_SKIP_REASON = (
+    "no version-matched libavutil found (SIDEDATA_LIBAVUTIL_PATH unset and "
+    "this host's libavutil major doesn't match the pinned struct layout) - "
+    "HDR10+ conformance against this exact fixture was previously proven "
+    "against compiled ffmpeg (see git history for hdr10plus.py's pure "
+    "parser and its device cross-check) and is now verified on device "
+    "against CE-22's own libavutil.so.60"
+)
 
 _SIGNATURE = bytes((0xB5, 0x00, 0x3C, 0x00, 0x01, 0x04))
 
@@ -89,8 +98,9 @@ class TestHdr10Plus(unittest.TestCase):
     def test_sei_found(self):
         self.assertIsNotNone(self.payload)
 
+    @unittest.skipUnless(_AVUTIL_AVAILABLE, _AVUTIL_SKIP_REASON)
     def test_lake_known_values(self):
-        result = hdr10plus.parse_t35(self.payload)
+        result = avutil.parse_t35(self.payload)
         self.assertIsNotNone(result)
         self.assertEqual(result['application_version'], 1)
         self.assertEqual(result['num_windows'], 1)
@@ -118,11 +128,11 @@ class TestHdr10Plus(unittest.TestCase):
 
     def test_negative_control_not_hdr10plus(self):
         bogus = bytes((0xB5, 0x00, 0x31, 0x47, 0x41, 0x39, 0x34, 0x00, 0x00))
-        self.assertIsNone(hdr10plus.parse_t35(bogus))
+        self.assertIsNone(avutil.parse_t35(bogus))
 
     def test_malformed_returns_none(self):
-        self.assertIsNone(hdr10plus.parse_t35(b''))
-        self.assertIsNone(hdr10plus.parse_t35(os.urandom(4)))
+        self.assertIsNone(avutil.parse_t35(b''))
+        self.assertIsNone(avutil.parse_t35(os.urandom(4)))
 
 
 if __name__ == '__main__':

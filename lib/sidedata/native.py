@@ -1,13 +1,12 @@
-# ctypes bindings to the platform libdovi (quietvoid/dovi_tool), used by
-# rpu.py in place of the pure-Python parser below when the library is
-# present. Struct layouts mirror libdovi-3.3.1's rpu_parser.h field-for-field
-# (see README.md); a layout slip here is silent corruption, not a crash.
+# ctypes bindings to the platform libdovi (quietvoid/dovi_tool), the sole
+# RPU parsing engine - see rpu.py, which just dispatches here. Struct
+# layouts mirror libdovi-3.3.1's rpu_parser.h field-for-field (see
+# README.md); a layout slip here is silent corruption, not a crash.
 #
-# native_parse_hevc_nal62(nal) / native_parse_av1_t35(payload) take exactly
-# the same byte forms as rpu.py's pure parse_hevc_nal62/parse_av1_t35 (both
-# libdovi entry points accept the same escaped-NAL / T.35-from-country-code
-# shapes unwrapped, per dovi_rpu.rs validated_trimmed_data/
-# av1_validated_trimmed_data) and return the identical result dict shape.
+# native_parse_hevc_nal62(nal) / native_parse_av1_t35(payload) take the
+# escaped-NAL / T.35-from-country-code shapes unwrapped (both libdovi entry
+# points accept these directly, per dovi_rpu.rs validated_trimmed_data/
+# av1_validated_trimmed_data) and return the resolved result dict, or None.
 #
 # The loader tries, in order: SIDEDATA_LIBDOVI_PATH, this addon's own
 # bundled build for the running platform.machine() (native_libs/<arch>/
@@ -17,7 +16,7 @@
 #
 # available() never raises regardless of what's installed. Both parse
 # functions return None on any failure - missing library, bad payload, or
-# anything else - so a caller can always fall back to the pure parser.
+# anything else - never raised to the caller.
 
 import ctypes
 import ctypes.util

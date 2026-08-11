@@ -8,9 +8,18 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
 import sidedata  # noqa: E402
+from sidedata import avutil, native  # noqa: E402
 from test_hdr10plus import _find_first_hdr10plus_sei  # noqa: E402
 
 TESTDATA = os.path.join(os.path.dirname(__file__), 'testdata')
+
+# see test_native.py for why this is wired here too: this file must be
+# runnable standalone, not only via `discover`'s alphabetical module order
+_HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64')
+if 'SIDEDATA_LIBDOVI_PATH' not in os.environ and os.path.isfile(_HOST_LIBDOVI):
+    os.environ['SIDEDATA_LIBDOVI_PATH'] = _HOST_LIBDOVI
+_NATIVE_AVAILABLE = native.available()
+_AVUTIL_AVAILABLE = avutil.available()
 
 
 def _b64(raw):
@@ -57,15 +66,23 @@ class TestParseSidedata(unittest.TestCase):
         self.assertEqual(result['flags'], ['converted', 'rpu-removed'])
         self.assertIsNotNone(result['config'])
         self.assertEqual(result['config']['profile'], 7)
-        self.assertIsNotNone(result['rpu'])
-        self.assertIsNotNone(result['rpu']['l1'])
-        self.assertIsNotNone(result['hdr10plus'])
-        self.assertEqual(result['hdr10plus']['application_version'], 1)
         self.assertIsNotNone(result['mdcv'])
         self.assertIsNotNone(result['mdcv']['primaries'])
         self.assertIsNotNone(result['cll'])
         self.assertEqual(result['cll']['max_cll'], 1000)
         self.assertEqual(result['cll']['max_fall'], 400)
+
+        if _NATIVE_AVAILABLE:
+            self.assertIsNotNone(result['rpu'])
+            self.assertIsNotNone(result['rpu']['l1'])
+        else:
+            self.assertIsNone(result['rpu'])
+
+        if _AVUTIL_AVAILABLE:
+            self.assertIsNotNone(result['hdr10plus'])
+            self.assertEqual(result['hdr10plus']['application_version'], 1)
+        else:
+            self.assertIsNone(result['hdr10plus'])
 
     def test_empty_string(self):
         result = sidedata.parse_sidedata('')

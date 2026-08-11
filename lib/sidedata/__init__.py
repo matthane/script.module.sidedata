@@ -1,5 +1,7 @@
-"""sidedata - pure-Python parsers for the raw DV/HDR sidedata payloads that
-Kodi publishes via the player.process(video.sidedata) infolabel.
+"""sidedata - parsers for the raw DV/HDR sidedata payloads that Kodi
+publishes via the player.process(video.sidedata) infolabel. The RPU and
+HDR10+ payloads are parsed by real engines (libdovi, libavutil) via ctypes;
+this package is glue, dispatch and conversion only - see README.md.
 
 Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a
@@ -26,8 +28,8 @@ Result shape of parse_sidedata()
       'vdr_bit_depth': int or None,   # meaningful as content depth only with a FEL residual
       'el_spatial_resampling_filter_flag': bool, 'disable_residual_flag': bool,
       'el_type': 'MEL' or 'FEL' or None,   # None when there is no enhancement layer at all;
-                                            # see rpu.py's _decide_el_type for the algorithm
-                                            # (ported from Kodi's DVDVideoCodecFFmpeg.cpp)
+                                            # read straight off libdovi's own
+                                            # DoviRpuDataHeader.el_type field
     },
     'compressed': bool,          # dv_md_compression active; source PQ zeroed when true
     'cm_version': '2.9' or '4.0' or None,
@@ -109,27 +111,21 @@ Result shape of parse_sidedata()
 
 Primary names (l9/l10 'name'/'primary_name'), content type names (l11) and the
 whitepoint Kelvin formula mirror the device-verified AMLFrameMetadata.h
-reference (see convert.py). The RPU bitstream parse follows dovi_tool's
-parsing logic (quietvoid, MIT) and is validated against dovi_tool's own JSON
-output - see README.md and tests/test_rpu.py. The rpu['header']['el_type']
-decision (MEL/FEL) is ported from Kodi's own ffmpeg codepath instead
-(DVDVideoCodecFFmpeg.cpp), since dovi_tool's own struct fields don't carry
-this classification the same way - see README.md's caveats.
+reference (see convert.py). The RPU is parsed entirely by libdovi (native.py,
+quietvoid's dovi_tool via ctypes); rpu['header']['el_type'] (MEL/FEL) is read
+straight off libdovi's own DoviRpuDataHeader.el_type field. The HDR10+
+section is parsed entirely by the platform's libavutil (avutil.py,
+av_dynamic_hdr_plus_from_t35 via ctypes). See README.md.
 """
 
 import base64
 import json
 
-from . import hdr10plus as _hdr10plus
+from . import avutil as _avutil
 from . import rpu as _rpu
 from . import statics as _statics
 
-__all__ = ['parse_sidedata', 'parser_backend']
-
-# 'libdovi' when the platform's native RPU bindings loaded (see rpu.py,
-# native.py), 'builtin' when the pure-Python parser below is doing the work.
-# The result shape from parse_sidedata() is identical either way.
-parser_backend = _rpu.parser_backend
+__all__ = ['parse_sidedata']
 
 
 def _empty_result():
@@ -186,7 +182,7 @@ def parse_sidedata(json_str):
     hdr10plus_b64 = data.get('hdr10plus')
     if hdr10plus_b64:
         try:
-            result['hdr10plus'] = _hdr10plus.parse_t35(_decode(hdr10plus_b64))
+            result['hdr10plus'] = _avutil.parse_t35(_decode(hdr10plus_b64))
         except Exception:
             result['hdr10plus'] = None
 
