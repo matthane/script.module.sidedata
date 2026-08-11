@@ -1,0 +1,71 @@
+name: Release
+
+# Tag-driven: push a `vX.Y.Z` tag matching addon.xml's version to cut a
+# release. Builds the exact bytes that ship (git archive honors
+# .gitattributes export-ignore, so tests/, tools/, UPDATING.md, and
+# RELEASING.md never reach the zip) and attaches the zip to a new GitHub
+# Release. See RELEASING.md for the full tag-to-release flow.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and publish release zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches addon.xml version
+        run: |
+          ADDON_ID=$(sed -n 's/.*<addon id="\([^"]*\)".*/\1/p' addon.xml)
+          VERSION=$(sed -n 's/.*<addon [^>]*version="\([^"]*\)".*/\1/p' addon.xml | head -n1)
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Addon id: $ADDON_ID, addon.xml version: $VERSION, tag: $TAG"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match addon.xml version $VERSION (expected v$VERSION)."
+            exit 1
+          fi
+          echo "ADDON_ID=$ADDON_ID" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build addon zip from git archive
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix="$ADDON_ID/" -o "dist/$ADDON_ID-$VERSION.zip" HEAD
+
+      - name: Create release and attach zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/$ADDON_ID-$VERSION.zip" \
+            --title "$ADDON_ID $VERSION" \
+            --generate-notes
+
+  # Disabled: there is no known CoreELEC submission venue for third-party
+  # addons yet (CE distributes its own addons from packages built in its own
+  # git tree, not from a repo-scripts-style PR flow). This job mirrors
+  # script.audiooffsetmanager.evolved's submit.yml so the shape is ready the
+  # day a CE addon repo or submission process exists. Until then, GitHub
+  # Releases (the job above) are the distribution channel.
+  #
+  # submit:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.x'
+  #     - name: Install addon submitter
+  #       run: pip install git+https://github.com/xbmc/kodi-addon-submitter.git
+  #     - name: Submit to CE addon repo (venue TBD)
+  #       env:
+  #         GH_USERNAME: ${{ secrets.GH_USERNAME }}
+  #         GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  #         EMAIL: ${{ secrets.EMAIL }}
+  #       run: submit-addon -r <TBD-repo> -b <TBD-branch> --pull-request script.module.sidedata

@@ -1,0 +1,78 @@
+name: Check
+
+# Runs on every push and pull request.
+#
+# Two independent jobs:
+#   * tests  - the stdlib unittest suite (tests/) against the supported
+#              Python range. The golden libdovi tests skip on this runner
+#              since the aarch64 .so only runs on aarch64, and no host build
+#              is present here; that is expected, see tests/test_native.py.
+#   * check  - kodi-addon-checker against a `git archive` extraction, i.e.
+#              the exact bytes that ship. `git archive` honors
+#              .gitattributes export-ignore, so tests/, tools/, and
+#              UPDATING.md never reach the checker (they are dev-only and
+#              would otherwise trip file-ending checks meant for the shipped
+#              package). The bundled lib/sidedata/native_libs/aarch64/libdovi.so
+#              does reach it and must stay non-executable in git (see the
+#              commit that fixed this) - kodi-addon-checker flags any
+#              executable-bit file as a stand-alone executable, which is a
+#              real problem for stray scripts but a false positive for a
+#              shared library loaded through ctypes. A shared library needs
+#              no execute permission to be opened with dlopen/ctypes.CDLL.
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: unittest (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor matches xbmc.python 3.0.0 (addon.xml), which is CPython 3.8
+        # on Kodi Nexus and newer; ceiling is a current interpreter, to catch
+        # forward-compat breakage early.
+        python-version: ['3.8', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: python -m unittest discover tests
+
+  check:
+    name: addon-checker (git archive)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build addon package from git archive
+        run: |
+          ADDON_ID=$(sed -n 's/.*<addon id="\([^"]*\)".*/\1/p' addon.xml)
+          echo "Addon id: $ADDON_ID"
+          mkdir -p "build/$ADDON_ID"
+          git archive --format=tar HEAD | tar -x -C "build/$ADDON_ID"
+          echo "Extracted package contents:"
+          ls -la "build/$ADDON_ID"
+
+      - name: Install kodi-addon-checker
+        run: |
+          python -m pip install --upgrade pip
+          pip install kodi-addon-checker
+
+      - name: Run kodi-addon-checker (piers)
+        # CoreELEC 22 tracks Kodi 22 (codename "piers", per xbmc/version.txt
+        # VERSION_MAJOR 22). --skip-dependency-checks: this addon's only
+        # <import> is xbmc.python, a core dependency the checker does not
+        # need to resolve against the community repo addon list.
+        run: kodi-addon-checker --branch=piers --skip-dependency-checks build/*/

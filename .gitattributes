@@ -1,0 +1,14 @@
+# Files excluded from the addon release package and the addon-checker run.
+# `git archive` drops every path marked export-ignore, so these stay in the
+# repo but never reach the release zip. Directories carry two entries: the
+# trailing-slash form prunes the directory from git archive, the /** form
+# makes git check-attr report nested paths as set.
+.gitattributes  export-ignore
+.github/        export-ignore
+tests/          export-ignore
+tests/**        export-ignore
+tools/          export-ignore
+tools/**        export-ignore
+UPDATING.md     export-ignore
+RELEASING.md    export-ignore
+.gitignore export-ignore
