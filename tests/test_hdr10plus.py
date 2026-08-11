@@ -99,7 +99,18 @@ class TestHdr10Plus(unittest.TestCase):
         self.assertEqual(len(result['bezier_anchors']), 9)
         self.assertEqual(result['knee_point_x'], 0.0)
         self.assertEqual(result['knee_point_y'], 0.0)
+
+        # codes cross-checked against the device host test (hdr10p_test.cpp)
+        # that fed this same sample through ffmpeg's own T.35 decoder
+        self.assertAlmostEqual(result['maxscl'][0], 395.6, places=4)
+        self.assertAlmostEqual(result['maxscl'][1], 206.3, places=4)
+        self.assertAlmostEqual(result['maxscl'][2], 204.7, places=4)
+        self.assertAlmostEqual(result['average_maxrgb'], 9.3, places=4)
+        self.assertAlmostEqual(result['fraction_bright_pixels'], 0.0, places=4)
+
         self.assertEqual(len(result['distribution']), 9)
+        self.assertAlmostEqual(result['distribution'][1]['nits'], 209.4, places=4)
+        self.assertAlmostEqual(result['distribution'][8]['nits'], 288.8, places=4)
         self.assertEqual(
             [d['percentage'] for d in result['distribution']],
             [1, 5, 10, 25, 50, 75, 90, 95, 99],
