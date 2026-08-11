@@ -119,6 +119,23 @@ def whitepoint_name(code):
     return '{}K'.format(whitepoint_kelvin(code))
 
 
+# HDR10+ (ST 2094-40) raw code scalings, ffmpeg's own denominators from
+# av_dynamic_hdr_plus_from_t35 (libavutil/hdr_dynamic_metadata.c: rgb_den,
+# fraction_pixel_den, knee_point_den) - avutil.py hands these the .num off
+# each AVRational it reads, mirroring what the pure parser did with the raw
+# bitstream code directly
+def hdr10plus_rgb_nits(code):
+    return code / 10.0
+
+
+def hdr10plus_fraction_bright_percent(code):
+    return code / 10.0
+
+
+def hdr10plus_knee_point(code):
+    return code / 4095.0
+
+
 # one trim control shared by L2 and L8 UI scale. lift, gain and gamma jointly
 # invert the slope/offset/power encoding that CM XML tooling writes into the
 # RPU; ms_disabled mirrors the L2 ms_weight -1 sentinel (tone detail off)
