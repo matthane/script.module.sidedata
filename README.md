@@ -2,9 +2,10 @@
 
 A CoreELEC addon. It is a parser library for the raw Dolby Vision and HDR
 sidedata that CoreELEC's Amlogic video player publishes via the
-`player.process(video.sidedata)` infolabel. That infolabel is
-CoreELEC-specific and does not exist on stock Kodi, so this addon requires
-CoreELEC 22 (Amlogic) and is not usable elsewhere. It's stdlib only
+`player.process(video.sidedata)` infolabel. It's built for CoreELEC 22 and
+runs on all of CoreELEC 22's current Amlogic devices, which is CoreELEC's
+whole current device base. The infolabel it parses is CoreELEC-specific and
+does not exist on stock Kodi, so stock Kodi is not supported. It's stdlib only
 (`json`, `base64`, `struct`, `ctypes`), with no external dependencies, and
 runs inside Kodi's bundled Python.
 
@@ -111,113 +112,21 @@ which is plain text:
 
 ## Result shape
 
-```
-sidedata.parse_sidedata(json_str) -> {
-  'flags': [str, ...],           # [] when absent
+`parse_sidedata()` returns a dict with six top-level keys: `flags`,
+`config`, `rpu`, `hdr10plus`, `mdcv`, `cll`. Every key except `flags` is
+`None` when its sidedata payload is absent, fails to parse, or, for `rpu`
+and `hdr10plus`, the parsing engine isn't available on the running
+platform.
 
-  'config': {                    # or None
-    'version_major': int, 'version_minor': int,
-    'profile': int, 'level': int,
-    'rpu_present': bool, 'el_present': bool, 'bl_present': bool,
-    'compat_id': int, 'md_compression': int,
-  },
-
-  'rpu': {                       # or None (no dovi.rpu payload, parse
-                                  # failure, or libdovi unavailable)
-    'profile': int,              # guessed DV profile (0/4/5/7/8)
-    'header': {
-      'rpu_type': int, 'rpu_format': int,
-      'vdr_rpu_profile': int, 'vdr_rpu_level': int,
-      'bl_bit_depth': int or None, 'el_bit_depth': int or None,
-      'vdr_bit_depth': int or None,   # content depth only meaningful with a FEL residual
-      'el_spatial_resampling_filter_flag': bool, 'disable_residual_flag': bool,
-      'el_type': 'MEL' or 'FEL' or None,   # None = no enhancement layer (e.g. profile 8)
-    },
-    'compressed': bool,          # dv_md_compression active; source PQ zeroed when true
-    'cm_version': '2.9' or '4.0' or None,
-    'source': {'min_pq': int, 'min_nits': float, 'max_pq': int, 'max_nits': float} or None,
-
-    'l1': {'min_pq': int, 'min_nits': float, 'max_pq': int, 'max_nits': float,
-           'avg_pq': int, 'avg_nits': float} or None,
-
-    'l2': [                      # trim passes, sorted by nits; [] when none
-      {
-        'nits': int,             # exact ST 2084 decode, snapped to the standard target list
-        'slope': int, 'offset': int, 'power': int,        # raw 12-bit codes, 2048 neutral
-        'chromaweight': int, 'saturation': int,
-        'tonedetail': int or None,                        # raw ms_weight; None = disabled (-1 sentinel)
-        'ui': {                  # Dolby UI scale, inverted from the raw codes
-          'gain': float, 'lift': float or None, 'gamma': float,
-          'chromaweight': float, 'saturation': float, 'tonedetail': float or None,
-        },
-      }, ...
-    ],
-
-    'l3': {'min_pq_offset': int, 'max_pq_offset': int, 'avg_pq_offset': int} or None,
-
-    'l5': {'left': int, 'right': int, 'top': int, 'bottom': int} or None,
-
-    'l6': {'max_cll': int, 'max_fall': int,
-           'min_lum_raw': int, 'min_lum_nits': float,      # min is 0.0001 cd/m2 units
-           'max_lum_raw': int, 'max_lum_nits': int} or None,  # max is already cd/m2
-
-    'l8': [                      # trim passes, target resolved L10-first then the preset
-      {                          # table; unresolvable entries are dropped; sorted by nits
-        'nits': int, 'target_display_index': int,
-        'slope': int, 'offset': int, 'power': int,
-        'chromaweight': int, 'saturation': int, 'tonedetail': int,   # unsigned, no sentinel
-        'ui': {...},              # same shape as l2[]['ui']
-        'mid_contrast': int,      # present only when the block serialization carries it
-        'clip_trim': int,         # present only when the block serialization carries it
-      }, ...
-    ],
-
-    'l9': {'index': int, 'name': str, 'has_coords': bool,
-           'coords': {'red': (x, y), 'green': (x, y), 'blue': (x, y), 'white': (x, y)}}
-          or None,               # 'coords' present only when has_coords; raw 16-bit CIE codes
-
-    'l10': [                     # target display definitions; sorted by (nits, primary_index)
-      {
-        'target_display_index': int, 'nits': int,
-        'target_max_pq': int, 'target_min_pq': int,
-        'primary_index': int, 'primary_name': str, 'has_coords': bool,
-        'coords': {...},         # present only when has_coords
-      }, ...
-    ],
-
-    'l11': {'content_type': int, 'content_type_name': str,
-            'whitepoint': int, 'whitepoint_kelvin': int, 'whitepoint_name': str,
-            'reference_mode': bool} or None,
-  },
-
-  'hdr10plus': {                 # or None (no hdr10plus payload, parse failure,
-                                  # or libavutil unavailable / version-mismatched).
-    'application_version': int, 'num_windows': int,        # Window 0 only (real content
-    'targeted_system_display_maximum_luminance': int,      # is essentially always
-    'maxscl': [float, float, float],                       # num_windows == 1)
-    'average_maxrgb': float,
-    'distribution': [{'percentage': int, 'nits': float}, ...],
-    'fraction_bright_pixels': float,
-    'profile': 'A' or 'B',
-    'knee_point_x': float, 'knee_point_y': float,           # 0..1
-    'bezier_anchors': [int, ...],                           # raw 10-bit codes
-  },
-
-  'mdcv': {                      # or None
-    'primaries': {'red': (x, y), 'green': (x, y), 'blue': (x, y)} or None,  # None = all-zero/unknown
-    'white_point': (x, y),
-    'max_luminance': float, 'min_luminance': float,        # nits
-  },
-
-  'cll': {'max_cll': int, 'max_fall': int} or None,
-}
-```
+See [FIELDS.md](FIELDS.md) for the full field-by-field reference, pinned
+per addon release.
 
 ## Structure
 
 ```
 addon.xml
-lib/sidedata/__init__.py   parse_sidedata() + the full result-shape docstring
+FIELDS.md                 result-shape field reference, pinned per addon release
+lib/sidedata/__init__.py   parse_sidedata() entry point
 lib/sidedata/rpu.py         RPU dispatch (parse_hevc_nal62 / parse_av1_t35) over native.py
 lib/sidedata/native.py      ctypes bindings to libdovi, bit parsing, result assembly
 lib/sidedata/native_libs/aarch64/libdovi.so   bundled libdovi build
