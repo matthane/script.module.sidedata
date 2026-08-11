@@ -182,6 +182,10 @@ fuzzed with truncations and header bit flips to confirm the never-raise
 contract. Real-stream verification on an actual AV1+DV playback device is
 still pending.
 
+The MEL/FEL enhancement layer type is golden-tested against real dual-layer
+profile 7 content: `tests/testdata/dv7fel_frame0.{rpu,json}` and
+`dv7mel_frame0.{rpu,json}` (see "RPU enhancement layer type" below).
+
 ## Known limitations
 
 - Two L2 or L8/L10 blocks that resolve to the same nits value (e.g. preset
@@ -194,13 +198,6 @@ still pending.
 - Individual L8 secondary 6-vector saturation/hue trims (block length 19/25)
   are parsed structurally (to keep bit alignment correct) but not exposed,
   matching the scope of the reference this parser mirrors.
-- **No real FEL stream fixture exists on host.** `rpu['header']['el_type']`
-  ('MEL'/'FEL'/None) is unit-tested against synthetic inputs for the decision
-  function itself (`tests/test_rpu.py`'s `TestDecideElType`), and against the
-  Signs 2002 fixture (a real single-layer profile 8 capture, correctly
-  `None`). The MEL-vs-FEL branch of the decision has not been exercised
-  against a real dual-layer profile 4/7 RPU on this host; device testing
-  covers that case.
 
 ## RPU enhancement layer type (MEL/FEL)
 
@@ -215,6 +212,16 @@ NLQ residual coefficient (`nlq_offset != 0`, `vdr_in_max != 8388608`,
 mirrored as-is rather than derived, since real content's
 `coefficient_log2_denom` is always 23). Outside that flag condition there is
 no enhancement layer at all and `el_type` is `None`.
+
+It's golden-tested against real dual-layer profile 7 content:
+`tests/testdata/dv7fel_frame0.{rpu,json}` and `dv7mel_frame0.{rpu,json}` are
+frame 0 of a real FEL title and a real MEL title respectively (RPUs walked
+out with `dovi_tool extract-rpu`, ground truth from `dovi_tool`'s own `info`
+JSON dump of the same frame - its summary independently reports "Profile: 7
+(FEL)" and "Profile: 7 (MEL)" for the two titles). The FEL fixture's frame 0
+carries a non-default NLQ residual, so this exercises the actual MEL-vs-FEL
+branch of the decision, not just the flag condition (`tests/test_rpu.py`'s
+`TestElTypeRealFixtures`).
 
 ## Credits and licensing
 

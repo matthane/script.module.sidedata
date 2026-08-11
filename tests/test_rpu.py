@@ -415,6 +415,89 @@ class TestAv1RealFixtures(unittest.TestCase):
         self._check_av1_frame('dv10_av1_frame700')
 
 
+class TestElTypeRealFixtures(unittest.TestCase):
+    """Golden-tested against real dual-layer profile 7 content: frame 0 of
+    a real FEL title and frame 0 of a real MEL title (both CM v2.9, 3840x2160
+    HEVC captures), RPUs walked out with dovi_tool extract-rpu and ground
+    truth taken from dovi_tool's own `info` JSON dump of the same frame.
+    dovi_tool's summary reports the FEL title as "Profile: 7 (FEL)" and the
+    MEL title as "Profile: 7 (MEL)"; its per-frame JSON carries a top-level
+    el_type field agreeing with that verdict. The FEL fixture's frame 0 has
+    a non-default NLQ residual (nlq_offset 512, not the 0 default), so it
+    exercises the actual FEL-vs-MEL branch of _decide_el_type rather than
+    just the flag condition TestDecideElType covers synthetically.
+    """
+
+    def _check_frame(self, name):
+        raw, truth = _load_frame(name)
+        parsed = rpu.parse_rpu_payload(raw)
+        self.assertIsNotNone(parsed, 'parse failed for ' + name)
+
+        vdr = truth['vdr_dm_data']
+        blocks = _truth_blocks(truth)
+
+        self.assertEqual(parsed['profile'], truth['dovi_profile'])
+        self.assertEqual(parsed['compressed'], vdr['compressed'])
+        self.assertIsNotNone(parsed['source'])
+        self.assertEqual(parsed['source']['min_pq'], vdr['source_min_pq'])
+        self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
+
+        l1_truth = blocks[1][0]
+        self.assertIsNotNone(parsed['l1'])
+        self.assertEqual(parsed['l1']['min_pq'], l1_truth['min_pq'])
+        self.assertEqual(parsed['l1']['max_pq'], l1_truth['max_pq'])
+        self.assertEqual(parsed['l1']['avg_pq'], l1_truth['avg_pq'])
+
+        l2_truth_by_pq = {b['target_max_pq']: b for b in blocks[2]}
+        self.assertEqual(len(parsed['l2']), len(l2_truth_by_pq))
+        for pq, b in l2_truth_by_pq.items():
+            nits = convert.snap_target_nits(convert.pq_to_nits(pq))
+            matches = [e for e in parsed['l2'] if e['nits'] == nits and e['slope'] == b['trim_slope']]
+            self.assertEqual(len(matches), 1, 'no unique L2 match for pq %d' % pq)
+            entry = matches[0]
+            self.assertEqual(entry['offset'], b['trim_offset'])
+            self.assertEqual(entry['power'], b['trim_power'])
+            self.assertEqual(entry['chromaweight'], b['trim_chroma_weight'])
+            self.assertEqual(entry['saturation'], b['trim_saturation_gain'])
+            self.assertEqual(entry['tonedetail'], b['ms_weight'])
+
+        l5_truth = blocks[5][0]
+        self.assertEqual(parsed['l5']['left'], l5_truth['active_area_left_offset'])
+        self.assertEqual(parsed['l5']['right'], l5_truth['active_area_right_offset'])
+        self.assertEqual(parsed['l5']['top'], l5_truth['active_area_top_offset'])
+        self.assertEqual(parsed['l5']['bottom'], l5_truth['active_area_bottom_offset'])
+
+        l6_truth = blocks[6][0]
+        self.assertEqual(parsed['l6']['max_cll'], l6_truth['max_content_light_level'])
+        self.assertEqual(parsed['l6']['max_fall'], l6_truth['max_frame_average_light_level'])
+        self.assertEqual(parsed['l6']['min_lum_raw'], l6_truth['min_display_mastering_luminance'])
+        self.assertEqual(parsed['l6']['max_lum_raw'], l6_truth['max_display_mastering_luminance'])
+
+        # this title's RPUs carry no CM v4.0 block group at all
+        self.assertNotIn('cmv40_metadata', vdr)
+        self.assertEqual(parsed['l8'], [])
+        self.assertIsNone(parsed['l9'])
+        self.assertEqual(parsed['l10'], [])
+        self.assertIsNone(parsed['l11'])
+        self.assertEqual(parsed['cm_version'], '2.9')
+
+        header_truth = truth['header']
+        self.assertEqual(parsed['header']['el_spatial_resampling_filter_flag'],
+                          header_truth['el_spatial_resampling_filter_flag'])
+        self.assertEqual(parsed['header']['disable_residual_flag'],
+                          header_truth['disable_residual_flag'])
+
+        return parsed
+
+    def test_fel_frame0_is_fel(self):
+        parsed = self._check_frame('dv7fel_frame0')
+        self.assertEqual(parsed['header']['el_type'], 'FEL')
+
+    def test_mel_frame0_is_mel(self):
+        parsed = self._check_frame('dv7mel_frame0')
+        self.assertEqual(parsed['header']['el_type'], 'MEL')
+
+
 _MEL_DEFAULT_COMPONENT = {
     'nlq_offset': 0,
     'vdr_in_max': 8388608,  # 1 << 23, ffmpeg's literal "no residual" constant
@@ -429,9 +512,10 @@ def _mel_default_components():
 
 class TestDecideElType(unittest.TestCase):
     """Synthetic-input coverage for rpu._decide_el_type, the MEL/FEL
-    decision ported from Kodi's DVDVideoCodecFFmpeg.cpp. No real FEL stream
-    fixture exists on host (see README's Known limitations); this exercises
-    the decision function directly instead.
+    decision ported from Kodi's DVDVideoCodecFFmpeg.cpp. TestElTypeRealFixtures
+    above covers the decision against real dual-layer content; this exercises
+    the decision function's individual boundary conditions directly, which a
+    single real fixture frame can't isolate one at a time.
     """
 
     def test_flag_condition_false_is_none(self):
