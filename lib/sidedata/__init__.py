@@ -14,6 +14,7 @@ Result shape of parse_sidedata()
 ---------------------------------
 {
   'flags': [str, ...],       # tokens from the flags key, e.g. ['converted']; [] when absent
+  'structure': str or None,  # 'st-dl' or 'dt-dl' for dual-layer DV; None for single-layer
   'config': {...} or None,   # dvcC/dvvC configuration record
   'rpu': {...} or None,      # Dolby Vision RPU: profile, header, source, l1-l11
   'hdr10plus': {...} or None,  # ST 2094-40 dynamic metadata, window 0 only
@@ -43,6 +44,7 @@ __all__ = ['parse_sidedata']
 def _empty_result():
     return {
         'flags': [],
+        'structure': None,
         'config': None,
         'rpu': None,
         'hdr10plus': None,
@@ -74,6 +76,8 @@ def parse_sidedata(json_str):
         flags = data.get('dovi.flags')
     if isinstance(flags, str) and flags.strip():
         result['flags'] = flags.split()
+
+    result['structure'] = data.get('structure')
 
     config_b64 = data.get('dovi.config')
     if config_b64:

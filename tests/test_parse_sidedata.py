@@ -95,17 +95,25 @@ class TestParseSidedata(unittest.TestCase):
         else:
             self.assertIsNone(result['hdr10plus'])
 
+    def test_structure_present(self):
+        result = sidedata.parse_sidedata(json.dumps({'structure': 'st-dl'}))
+        self.assertEqual(result['structure'], 'st-dl')
+
+    def test_structure_absent(self):
+        result = sidedata.parse_sidedata(json.dumps({'flags': 'converted'}))
+        self.assertIsNone(result['structure'])
+
     def test_empty_string(self):
         result = sidedata.parse_sidedata('')
         self.assertEqual(result, {
-            'flags': [], 'config': None, 'rpu': None,
+            'flags': [], 'structure': None, 'config': None, 'rpu': None,
             'hdr10plus': None, 'mdcv': None, 'cll': None,
         })
 
     def test_empty_object(self):
         result = sidedata.parse_sidedata('{}')
         self.assertEqual(result, {
-            'flags': [], 'config': None, 'rpu': None,
+            'flags': [], 'structure': None, 'config': None, 'rpu': None,
             'hdr10plus': None, 'mdcv': None, 'cll': None,
         })
 

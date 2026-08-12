@@ -22,7 +22,7 @@ parsing lives in Python. See "Pinned versions" below for why that matters.
 
 Registered as an `xbmc.python.module` extension point (`library="lib"`), so
 any addon can `import sidedata` after declaring
-`<import addon="script.module.sidedata" version="1.2.1"/>` (a minimum
+`<import addon="script.module.sidedata" version="1.2.2"/>` (a minimum
 version, per Kodi's addon.xml `<import>` semantics) in its own `addon.xml`.
 
 ```python
@@ -55,14 +55,16 @@ which is plain text:
 | `mdcv` | mastering display colour volume SEI payload, 24 bytes |
 | `cll` | content light level SEI payload, 4 bytes |
 | `flags` | plain text, space-separated tokens from `{converted, rpu-removed, hdr10plus-removed, l5-zeroed}` |
+| `structure` | plain text, `st-dl` or `dt-dl` for a dual-layer Dolby Vision stream; absent for single-layer |
 
 ## Result shape
 
-`parse_sidedata()` returns a dict with six top-level keys: `flags`,
-`config`, `rpu`, `hdr10plus`, `mdcv`, `cll`. Every key except `flags` is
-`None` when its sidedata payload is absent, fails to parse, or, for `rpu`
-and `hdr10plus`, the parsing engine isn't available on the running
-platform.
+`parse_sidedata()` returns a dict with seven top-level keys: `flags`,
+`structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`. Every key except
+`flags` and `structure` is `None` when its sidedata payload is absent,
+fails to parse, or, for `rpu` and `hdr10plus`, the parsing engine isn't
+available on the running platform. `structure` is `None` under the same
+absent case; `flags` is `[]` instead.
 
 See [FIELDS.md](FIELDS.md) for the full field-by-field reference, pinned
 per addon release.
