@@ -27,8 +27,8 @@ release. The RPU is parsed entirely by libdovi (native.py, quietvoid's
 dovi_tool via ctypes); the HDR10+ section is parsed entirely by the
 platform's libavutil (avutil.py, av_dynamic_hdr_plus_from_t35 via ctypes).
 Name tables and value scalings (PQ-to-nits, target-nits snapping, primaries
-and content-type names, whitepoint Kelvin) mirror the device-verified
-AMLFrameMetadata.h reference; see convert.py. See README.md.
+and content-type names, whitepoint Kelvin) follow dovi_tool and FFmpeg; see
+convert.py. See README.md.
 """
 
 import base64

@@ -176,7 +176,7 @@ addon for that path.
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10
 primaries name table, the L11 content-type and whitepoint tables, the L2/L8
 trim UI-scale inversion, and the HDR10+ raw-code-to-nits/percent scalings)
-are ported from `AMLFrameMetadata.h`, CoreELEC's own device-tested reference
-implementation, whose field names and scalings this module mirrors.
+follow dovi_tool's output conventions and FFmpeg's field semantics. The test
+suite holds the parsed output to those tools' values on real streams.
 
 See `NOTICE.md` for the full third-party notices.

@@ -9,10 +9,9 @@
 # codec lib.
 #
 # Field extraction (which struct fields feed which output keys, the 6-byte
-# T.35 header, the num_windows >= 1 gate) mirrors AMLFillFromHdr10PlusT35
-# (CoreELEC ce-label-registry, device-tested; ~/ce/xbmc
-# AMLFrameMetadata.h). Only window 0 is exposed, matching that
-# implementation; real content is essentially always num_windows == 1.
+# T.35 header, the num_windows >= 1 gate) follows ffmpeg's AVDynamicHDRPlus
+# semantics. Only window 0 is exposed; real content is essentially always
+# num_windows == 1.
 #
 # The loader tries, in order: SIDEDATA_LIBAVUTIL_PATH, 'libavutil.so.61',
 # 'libavutil.so.60', then ctypes.util.find_library('avutil'). A loaded

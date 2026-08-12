@@ -1,7 +1,7 @@
-# Value scalings and name tables shared by the RPU and HDR10+ parsers. Ported
-# from AMLFrameMetadata.h (CoreELEC ce-label-registry, device-verified) so the
-# nits/kelvin/name conversions match what the reference implementation showed
-# on real hardware.
+# Value scalings and name tables shared by the RPU and HDR10+ parsers. The
+# nits/kelvin/name conversions follow dovi_tool's output conventions and the
+# Dolby level semantics it implements, and the golden tests hold them to
+# dovi_tool's and FFmpeg's values on real streams.
 
 _ST2084_Y_MAX = 10000.0
 _ST2084_M1 = 2610.0 / 16384.0
