@@ -63,8 +63,8 @@ build for local test runs. That's what backs
 
 # Updating for a new CE ffmpeg major
 
-Checklist for moving `lib/sidedata/avutil.py`'s pinned `libavutil` major
-(currently 60, FFmpeg 8.1.2) to whatever ffmpeg CoreELEC 22 bumps to next.
+Checklist for covering a new `libavutil` major in `lib/sidedata/avutil.py`
+(currently 60 and 61, FFmpeg 8.1.2 and 9.0) when CoreELEC 22 bumps ffmpeg.
 
 1. Find the new `libavutil/hdr_dynamic_metadata.h` in the CE build tree for
    the new ffmpeg version (`build.CoreELEC-Amlogic-*/build/ffmpeg-*/libavutil/`).
@@ -74,8 +74,10 @@ Checklist for moving `lib/sidedata/avutil.py`'s pinned `libavutil` major
    `ctypes.Structure` to match. This is a plain stack struct passed by
    pointer, not an opaque allocation, so a layout slip corrupts the stack
    rather than crashing cleanly.
-2. Bump `_LIBAVUTIL_VERSION_MAJOR` in `avutil.py` to the new
-   `LIBAVUTIL_VERSION_MAJOR` (from the new build's `libavutil/version.h`).
+2. Add the new `LIBAVUTIL_VERSION_MAJOR` (from the new build's
+   `libavutil/version.h`) to `_LIBAVUTIL_VERSION_MAJORS` in `avutil.py`,
+   newest first, and add the matching `libavutil.so.<major>` candidate to
+   the loader. Drop majors no supported CE release still ships.
 3. Retest: a host with a version-matched system `libavutil` will run
    `tests/test_hdr10plus.py`'s golden test for real. Otherwise, which is
    the common case since a dev host's system ffmpeg rarely matches CE's

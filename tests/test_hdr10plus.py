@@ -27,7 +27,7 @@ _AVUTIL_SKIP_REASON = (
     "HDR10+ conformance against this exact fixture was previously proven "
     "against compiled ffmpeg (see git history for hdr10plus.py's pure "
     "parser and its device cross-check) and is now verified on device "
-    "against CE-22's own libavutil.so.60"
+    "against CE-22's own libavutil (major 60 or 61)"
 )
 
 _SIGNATURE = bytes((0xB5, 0x00, 0x3C, 0x00, 0x01, 0x04))

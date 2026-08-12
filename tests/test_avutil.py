@@ -39,8 +39,8 @@ class TestAvutilLoader(unittest.TestCase):
 
 class TestAvutilVersionGate(unittest.TestCase):
     """This host's own libavutil (via ctypes.util.find_library('avutil'), or
-    the CE-22 libavutil.so.60 build if SIDEDATA_LIBAVUTIL_PATH points at
-    one) is only usable when its major matches the pinned struct layout.
+    a CE-22 libavutil.so.61/.so.60 build if SIDEDATA_LIBAVUTIL_PATH points
+    at one) is only usable when its major matches a pinned struct layout.
     On a typical dev host the system ffmpeg is a different major, so this
     documents the mismatch being rejected rather than silently trusted.
     """
@@ -62,7 +62,7 @@ class TestAvutilVersionGate(unittest.TestCase):
         import ctypes
         lib = ctypes.CDLL(found)
         major = lib.avutil_version() >> 16
-        if major == avutil._LIBAVUTIL_VERSION_MAJOR:
+        if major in avutil._LIBAVUTIL_VERSION_MAJORS:
             self.skipTest('system libavutil happens to be major %d already' % major)
 
         _reset_avutil_cache()

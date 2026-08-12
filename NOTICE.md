@@ -24,8 +24,8 @@ FFmpeg, LGPL-2.1-or-later) via `ctypes.CDLL` at runtime and calls
 `av_dynamic_hdr_plus_from_t35` directly. All HDR10+ (ST 2094-40) T.35
 parsing is done by that library, not by this addon. `avutil.py` declares
 ctypes structs transcribed from FFmpeg 8.1.2's public header
-(`libavutil/hdr_dynamic_metadata.h`, the version CoreELEC 22 ships) so
-ctypes can call into it correctly, gated on a matching `avutil_version()`
-major (see README.md's "Pinned versions"). No FFmpeg code is vendored or
-linked, and nothing is distributed with this addon for this path.
-`libavutil.so` is always CoreELEC's own copy.
+(`libavutil/hdr_dynamic_metadata.h`), unchanged in FFmpeg 9.0, the versions
+CoreELEC 22 has shipped, so ctypes can call into it correctly, gated on a
+matching `avutil_version()` major (see README.md's "Pinned versions"). No
+FFmpeg code is vendored or linked, and nothing is distributed with this
+addon for this path. `libavutil.so` is always CoreELEC's own copy.
