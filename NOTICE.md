@@ -26,6 +26,6 @@ parsing is done by that library, not by this addon. `avutil.py` declares
 ctypes structs transcribed from FFmpeg 8.1.2's public header
 (`libavutil/hdr_dynamic_metadata.h`), unchanged in FFmpeg 9.0, the versions
 CoreELEC 22 has shipped, so ctypes can call into it correctly, gated on a
-matching `avutil_version()` major (see README.md's "Pinned versions"). No
+matching `avutil_version()` major (see README.md's "Under the hood"). No
 FFmpeg code is vendored or linked, and nothing is distributed with this
 addon for this path. `libavutil.so` is always CoreELEC's own copy.
