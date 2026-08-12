@@ -8,11 +8,13 @@
 # points accept these directly, per dovi_rpu.rs validated_trimmed_data/
 # av1_validated_trimmed_data) and return the resolved result dict, or None.
 #
-# The loader tries, in order: SIDEDATA_LIBDOVI_PATH, this addon's own
-# bundled build for the running platform.machine() (native_libs/<arch>/
-# libdovi.so, resolved relative to this file's own path so it works
-# regardless of Kodi's cwd), then the platform's libdovi.so / find_library.
-# No bundled dir for the current arch just falls through to that last step.
+# The loader tries four candidates in order: SIDEDATA_LIBDOVI_PATH, this
+# addon's own bundled build for the running platform.machine()
+# (native_libs/<arch>/libdovi.so, resolved relative to this file's own path
+# so it works regardless of Kodi's cwd), a bare libdovi.so soname left to
+# the dynamic linker, then whatever find_library('dovi') resolves, which is
+# the versioned soname a bare dlopen misses. No bundled dir for the current
+# arch just falls through to the last two.
 #
 # available() never raises regardless of what's installed. Both parse
 # functions return None on any failure, whether a missing library, a bad
@@ -305,25 +307,28 @@ def _bundled_lib_path():
     return path if os.path.isfile(path) else None
 
 
+def _candidates():
+    # yielded lazily: find_library shells out to ldconfig and friends, which a
+    # minimal image may not carry, so it only runs once the rest have failed
+    override = os.environ.get('SIDEDATA_LIBDOVI_PATH')
+    if override:
+        yield override
+    bundled = _bundled_lib_path()
+    if bundled:
+        yield bundled
+    yield 'libdovi.so'
+    found = ctypes.util.find_library('dovi')
+    if found:
+        yield found
+
+
 def _load():
     global _lib, _load_attempted
     if _load_attempted:
         return _lib
     _load_attempted = True
 
-    candidates = []
-    override = os.environ.get('SIDEDATA_LIBDOVI_PATH')
-    if override:
-        candidates.append(override)
-    bundled = _bundled_lib_path()
-    if bundled:
-        candidates.append(bundled)
-    candidates.append('libdovi.so')
-    found = ctypes.util.find_library('dovi')
-    if found:
-        candidates.append(found)
-
-    for name in candidates:
+    for name in _candidates():
         try:
             lib = ctypes.CDLL(name)
             _configure(lib)

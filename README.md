@@ -71,8 +71,9 @@ the fixed-layout unpacks for dvcC/dvvC, MDCV and CLL.
 - **Dolby Vision RPU** uses
   [quietvoid's `libdovi`](https://github.com/quietvoid/dovi_tool), bundled
   for aarch64. The loader tries `SIDEDATA_LIBDOVI_PATH`, then the bundled
-  build, then a platform-provided `libdovi.so`. There is no pure-Python
-  fallback, so `result['rpu']` is `None` if none of those resolve.
+  build, then a platform-provided `libdovi.so`, by soname and then through
+  `find_library`. There is no pure-Python fallback, so `result['rpu']` is
+  `None` if none of those resolve.
 - **HDR10+** uses FFmpeg's `libavutil`, always CoreELEC's own copy, borrowed
   at runtime and never bundled. Because the copy is whatever CoreELEC ships,
   `avutil.py` checks `avutil_version()` on load and refuses a major it does
