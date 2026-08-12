@@ -3,8 +3,8 @@
 A CoreELEC addon. It is a parser library for the raw Dolby Vision and HDR
 sidedata that CoreELEC's Amlogic video player publishes via the
 `player.process(video.sidedata)` infolabel. It's built for CoreELEC 22 and
-runs on all of CoreELEC 22's current Amlogic devices, which is CoreELEC's
-whole current device base. The infolabel it parses is CoreELEC-specific and
+runs on all of CoreELEC 22's current Amlogic devices. The infolabel it
+parses is CoreELEC-specific and
 does not exist on stock Kodi, so stock Kodi is not supported. It's stdlib only
 (`json`, `base64`, `struct`, `ctypes`), with no external dependencies, and
 runs inside Kodi's bundled Python.
