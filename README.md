@@ -66,6 +66,12 @@ fails to parse, or, for `rpu` and `hdr10plus`, the parsing engine isn't
 available on the running platform. `structure` is `None` under the same
 absent case; `flags` is `[]` instead.
 
+Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10
+primaries name table, the L11 content-type and whitepoint tables, the L2/L8
+trim UI-scale inversion, and the HDR10+ raw-code-to-nits/percent scalings)
+follow dovi_tool's output conventions and FFmpeg's field semantics. The test
+suite holds the parsed output to those tools' values on real streams.
+
 See [FIELDS.md](FIELDS.md) for the full field-by-field reference, pinned
 per addon release.
 
@@ -172,11 +178,5 @@ It binds CoreELEC's own `libavutil` (part of FFmpeg, LGPL-2.1-or-later) via
 `ctypes` at runtime and calls `av_dynamic_hdr_plus_from_t35` directly. No
 FFmpeg code is vendored or linked, and nothing is distributed with this
 addon for that path.
-
-Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10
-primaries name table, the L11 content-type and whitepoint tables, the L2/L8
-trim UI-scale inversion, and the HDR10+ raw-code-to-nits/percent scalings)
-follow dovi_tool's output conventions and FFmpeg's field semantics. The test
-suite holds the parsed output to those tools' values on real streams.
 
 See `NOTICE.md` for the full third-party notices.
