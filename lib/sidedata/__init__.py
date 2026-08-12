@@ -72,8 +72,6 @@ def parse_sidedata(json_str):
         return result
 
     flags = data.get('flags')
-    if flags is None:
-        flags = data.get('dovi.flags')
     if isinstance(flags, str) and flags.strip():
         result['flags'] = flags.split()
 
