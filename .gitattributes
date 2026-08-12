@@ -4,10 +4,10 @@
 # trailing-slash form prunes the directory from git archive, the /** form
 # makes git check-attr report nested paths as set.
 .gitattributes  export-ignore
+.gitignore      export-ignore
 .github/        export-ignore
+.github/**      export-ignore
 tests/          export-ignore
 tests/**        export-ignore
 tools/          export-ignore
 tools/**        export-ignore
-UPDATING.md     export-ignore
-RELEASING.md    export-ignore

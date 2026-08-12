@@ -79,7 +79,7 @@ per addon release.
 
 Both bindings mirror a fixed struct layout from a specific upstream build.
 A version drift is silent memory corruption, not a compile error, so see
-`UPDATING.md` for the procedure to move either pin.
+`.github/UPDATING.md` for the procedure to move either pin.
 
 | Engine | Pinned to | Struct source | Version check |
 |---|---|---|---|
@@ -151,7 +151,11 @@ logic for it.
 
 ```
 addon.xml
+README.md                 this file
 FIELDS.md                 result-shape field reference, pinned per addon release
+NOTICE.md                 third-party notices
+LICENSE.txt               GPL-2.0 text, the license this addon ships under
+LICENSES/dovi_tool.MIT    MIT text for the bundled libdovi build
 lib/sidedata/__init__.py   parse_sidedata() entry point
 lib/sidedata/rpu.py         RPU dispatch (parse_hevc_nal62 / parse_av1_t35) over native.py
 lib/sidedata/native.py      ctypes bindings to libdovi, bit parsing, result assembly
@@ -159,14 +163,20 @@ lib/sidedata/native_libs/aarch64/libdovi.so   bundled libdovi build
 lib/sidedata/avutil.py      ctypes binding to libavutil for HDR10+ (av_dynamic_hdr_plus_from_t35)
 lib/sidedata/statics.py     dvcC/dvvC config, MDCV, CLL (fixed-layout unpacks)
 lib/sidedata/convert.py     PQ<->nits, target-nits snapping, name tables, trim UI scale, HDR10+ scalings
-tools/build-libdovi.sh   rebuilds the bundled libdovi.so, see UPDATING.md
+```
+
+These are dev-only and never reach the release zip:
+
+```
+tools/build-libdovi.sh   rebuilds the bundled libdovi.so, see .github/UPDATING.md
 tests/                   stdlib unittest, run with: python3 -m unittest discover tests
+.github/                 workflows plus the release and library update runbooks
 ```
 
 ## License
 
-This addon is licensed GPL-2.0-or-later (see `addon.xml`), the CoreELEC/
-Kodi addon convention.
+This addon is licensed GPL-2.0-or-later (full text in `LICENSE.txt`), the
+CoreELEC/Kodi addon convention.
 
 It bundles an unmodified aarch64 build of quietvoid's `libdovi-3.3.1`
 (`lib/sidedata/native_libs/aarch64/libdovi.so`, MIT License,

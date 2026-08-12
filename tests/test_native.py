@@ -10,7 +10,7 @@ from sidedata import convert, native, rpu  # noqa: E402
 
 # Golden fixtures are RPU payloads extracted from real commercial titles
 # and are kept out of this public repo; they live on disk outside it
-# instead (see UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the default
+# instead (see .github/UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the default
 # location.
 _FIXTURES_DIR = os.environ.get(
     'SIDEDATA_FIXTURES_DIR',
@@ -19,12 +19,12 @@ _FIXTURES_DIR = os.environ.get(
 _FIXTURES_AVAILABLE = os.path.isdir(_FIXTURES_DIR) and bool(os.listdir(_FIXTURES_DIR))
 _FIXTURES_SKIP_REASON = (
     'no fixture directory found - place the golden fixtures at ' +
-    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see UPDATING.md'
+    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see .github/UPDATING.md'
 )
 TESTDATA = _FIXTURES_DIR
 
 # host-test libdovi build, outside the repo (see tools/build-libdovi.sh and
-# UPDATING.md) - wired in automatically so the golden fixtures below run
+# .github/UPDATING.md) - wired in automatically so the golden fixtures below run
 # through the real bindings on this host, not only on-device
 _HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64')
 if 'SIDEDATA_LIBDOVI_PATH' not in os.environ and os.path.isfile(_HOST_LIBDOVI):
@@ -43,7 +43,7 @@ _SKIP_REASON = (
     "no native libdovi found (SIDEDATA_LIBDOVI_PATH unset, "
     "~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64 missing, and "
     "ctypes.util.find_library('dovi') found nothing) - tools/build-libdovi.sh "
-    "documents building a host build the same way, see UPDATING.md"
+    "documents building a host build the same way, see .github/UPDATING.md"
 )
 
 
@@ -217,7 +217,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
 
 class TestGoldenAv1Fixtures(unittest.TestCase):
     """Golden-tested against real AV1+DV content, through rpu.parse_av1_t35:
-    the dv10_av1_frame{0,700}.t35 fixtures (see UPDATING.md for where they
+    the dv10_av1_frame{0,700}.t35 fixtures (see .github/UPDATING.md for where they
     live) were walked out of a real AV1 elementary stream, checked against
     dovi_tool's own JSON dump of the same title's separately-extracted
     regular-RPU form at the matching frame index (see the git history for

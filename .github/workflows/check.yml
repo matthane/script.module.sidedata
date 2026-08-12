@@ -7,14 +7,14 @@ name: Check
 #              Python range. The golden fixture tests skip on this runner:
 #              the fixtures themselves are payloads from real commercial
 #              titles and are kept out of this repo entirely (see
-#              UPDATING.md), and the aarch64 libdovi.so can't load here
-#              either way. Both are expected; the synthetic tests (loader
+#              .github/UPDATING.md), and the aarch64 libdovi.so can't load
+#              here either way. Both are expected; the synthetic tests (loader
 #              behavior, never-raise paths that build payloads inline,
 #              statics vectors) still run and must pass.
 #   * check  - kodi-addon-checker against a `git archive` extraction, i.e.
 #              the exact bytes that ship. `git archive` honors
-#              .gitattributes export-ignore, so tests/, tools/, and
-#              UPDATING.md never reach the checker (they are dev-only and
+#              .gitattributes export-ignore, so tests/, tools/ and the
+#              .github/ tree never reach the checker (they are dev-only and
 #              would otherwise trip file-ending checks meant for the shipped
 #              package). The bundled lib/sidedata/native_libs/aarch64/libdovi.so
 #              does reach it and must stay non-executable in git (see the

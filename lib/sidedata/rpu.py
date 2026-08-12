@@ -1,6 +1,6 @@
 # Dolby Vision RPU parsing dispatch. All bit-level parsing is done by
 # native.py's libdovi ctypes bindings (quietvoid's dovi_tool); see
-# README.md and UPDATING.md. parse_hevc_nal62 takes the escaped HEVC NAL
+# README.md. parse_hevc_nal62 takes the escaped HEVC NAL
 # unit 62 whole (7C 01 header + payload, as delivered by the dovi.rpu
 # sidedata key); parse_av1_t35 takes the Dolby Vision ITU-T T.35 metadata
 # OBU payload from the country code (B5 00 3B...). Both return the resolved

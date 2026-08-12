@@ -2,9 +2,9 @@ name: Release
 
 # Tag-driven: push a `vX.Y.Z` tag matching addon.xml's version to cut a
 # release. Builds the exact bytes that ship (git archive honors
-# .gitattributes export-ignore, so tests/, tools/, UPDATING.md, and
-# RELEASING.md never reach the zip) and attaches the zip to a new GitHub
-# Release. See RELEASING.md for the full tag-to-release flow.
+# .gitattributes export-ignore, so tests/, tools/ and this .github/ tree
+# never reach the zip) and attaches the zip to a new GitHub Release. See
+# .github/RELEASING.md for the full tag-to-release flow.
 on:
   push:
     tags:

@@ -8,7 +8,7 @@ from sidedata import avutil  # noqa: E402
 
 # Golden fixtures are HDR10+ payloads extracted from real commercial
 # titles and are kept out of this public repo; they live on disk outside
-# it instead (see UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the
+# it instead (see .github/UPDATING.md). SIDEDATA_FIXTURES_DIR overrides the
 # default location.
 _FIXTURES_DIR = os.environ.get(
     'SIDEDATA_FIXTURES_DIR',
@@ -17,7 +17,7 @@ _FIXTURES_DIR = os.environ.get(
 _FIXTURES_AVAILABLE = os.path.isdir(_FIXTURES_DIR) and bool(os.listdir(_FIXTURES_DIR))
 _FIXTURES_SKIP_REASON = (
     'no fixture directory found - place the golden fixtures at ' +
-    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see UPDATING.md'
+    _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see .github/UPDATING.md'
 )
 TESTDATA = _FIXTURES_DIR
 _AVUTIL_AVAILABLE = avutil.available()

@@ -19,10 +19,11 @@ Checklist for publishing a new version of this addon.
    GitHub Release.
 
 The release zip is exactly what `git archive` produces once
-`.gitattributes` export-ignore rules are applied: `tests/`, `tools/`,
-`UPDATING.md`, this file, and the GitHub Actions configuration are all
-dropped. `FIELDS.md`, `README.md`, `NOTICE.md`, `LICENSES/`, and the
-bundled `lib/` tree, including `native_libs/`, all ship.
+`.gitattributes` export-ignore rules are applied: `tests/`, `tools/` and
+the whole `.github/` tree, which holds this file, `UPDATING.md` and the
+GitHub Actions configuration, are all dropped. `FIELDS.md`, `README.md`,
+`NOTICE.md`, `LICENSE.txt`, `LICENSES/`, and the bundled `lib/` tree,
+including `native_libs/`, all ship.
 
 `.github/workflows/check.yml` runs the same `git archive` step against
 every push and pull request and feeds the result to `kodi-addon-checker`,

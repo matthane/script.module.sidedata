@@ -1,12 +1,12 @@
 #!/bin/bash
 # Rebuilds lib/sidedata/native_libs/aarch64/libdovi.so from quietvoid/dovi_tool's
 # dolby_vision crate (capi feature, cargo-c library name "dovi" -> libdovi.so).
-# See UPDATING.md for the full maintainer checklist this script is one step of.
+# See .github/UPDATING.md for the full maintainer checklist this script is one step of.
 #
 # The same cargo cbuild invocation below, run without --target from inside
 # $SRC_DIR, produces a host-arch build instead - that's the x86_64 build
 # tests/test_native.py points SIDEDATA_LIBDOVI_PATH at for local golden
-# testing (never packaged into the addon zip). See UPDATING.md.
+# testing (never packaged into the addon zip). See .github/UPDATING.md.
 set -euo pipefail
 
 LIBDOVI_TAG="libdovi-3.3.1"
