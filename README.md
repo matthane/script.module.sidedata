@@ -1,4 +1,4 @@
-<img src="resources/icon.png" alt="" width="128" align="right">
+<img src="resources/icon.png" alt="Sidedata Module" width="128" height="128">
 
 # script.module.sidedata
 
