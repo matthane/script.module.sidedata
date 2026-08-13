@@ -44,8 +44,11 @@ $INFO[Window(Home).Property(sidedata.rpu.profile)]
 | L10 target display, keyed by `target_display_index` (two blocks can share a nits value). `.l10.indexes` enumerates them | `sidedata.rpu.l10.0.max_pq` |
 | HDR10+ distribution, keyed by percentile. `.distribution.percentages` enumerates them | `sidedata.hdr10plus.distribution.50` |
 | collision (two blocks resolve to the same key), later ones get a dash and an ordinal | second 300 nit L2 trim: `sidedata.rpu.l2.300-2` |
+| derived: entry count for L2, L8, L10 and the HDR10+ distribution | `sidedata.rpu.l2.count` |
+| derived: L2/L8 first/last trim by nits, duplicating that entry's keyed fields | `sidedata.rpu.l2.first.ui.gain`, `sidedata.rpu.l2.last.ui.gain` |
+| derived: presence flags for the whole payload, Dolby Vision, HDR10+, MDCV and CLL | `sidedata.present`, `sidedata.dovi.present`, `sidedata.hdr10plus.present` |
 
-Each enumeration property lists the exact tokens in the order the blocks appeared, dash suffixes included, so a skin can walk every one by taking each token as the next path segment. Booleans publish as `true` or `false`, floats drop trailing zeros, and a field that's `None` or absent from the current frame publishes no property at all.
+Each enumeration property lists the exact tokens in the order the blocks appeared, dash suffixes included, so a skin can walk every one by taking each token as the next path segment. Booleans publish as `true` or `false`, floats drop trailing zeros, and a field that's `None` or absent from the current frame publishes no property at all. Presence flags only ever publish `true`, and a skin reads their absence as false with `String.IsEmpty`.
 
 Properties follow the metadata within about a tenth of a second, aligned to scene cuts, and clear the moment playback stops or the RPU disappears from the label. No import or dependency declaration is needed for this path. The service starts on its own once the addon is installed.
 

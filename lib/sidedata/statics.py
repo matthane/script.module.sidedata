@@ -5,6 +5,8 @@
 
 import struct
 
+from .convert import mdcv_primaries_name
+
 
 def parse_config(data):
     data = bytes(data)
@@ -34,17 +36,23 @@ def parse_mdcv(data):
     (green_x, green_y, blue_x, blue_y, red_x, red_y, white_x, white_y,
      max_lum, min_lum) = struct.unpack('>8HII', data[:24])
 
+    white_point = (white_x / 50000.0, white_y / 50000.0)
+
     primaries = None
     if not (green_x == green_y == blue_x == blue_y == red_x == red_y == 0):
+        red = (red_x / 50000.0, red_y / 50000.0)
+        green = (green_x / 50000.0, green_y / 50000.0)
+        blue = (blue_x / 50000.0, blue_y / 50000.0)
         primaries = {
-            'red': (red_x / 50000.0, red_y / 50000.0),
-            'green': (green_x / 50000.0, green_y / 50000.0),
-            'blue': (blue_x / 50000.0, blue_y / 50000.0),
+            'red': red,
+            'green': green,
+            'blue': blue,
+            'name': mdcv_primaries_name(red, green, blue, white_point),
         }
 
     return {
         'primaries': primaries,
-        'white_point': (white_x / 50000.0, white_y / 50000.0),
+        'white_point': white_point,
         'max_luminance': max_lum / 10000.0,
         'min_luminance': min_lum / 10000.0,
     }

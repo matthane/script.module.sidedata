@@ -348,6 +348,7 @@ bytes), else `None`.
   Present only when `primaries` is not `None`.
 - `primaries.blue` (tuple of float): CIE x, y, each raw code / 50000.0.
   Present only when `primaries` is not `None`.
+- `primaries.name` (str or None): the well known primaries set name (DCI-P3 D65, BT.709, BT.2020, SMPTE-C, BT.601, DCI-P3, ACES, S-Gamut or S-Gamut-3.Cine) when the decoded `primaries` and `white_point` coordinates match that set's CIE chromaticities within about 0.001 per coordinate, well above the SEI's 1/50000 quantization step. `None` when no set matches. Present only when `primaries` is not `None`.
 - `white_point` (tuple of float): CIE x, y, each raw code / 50000.0.
 - `max_luminance` (float): nits, raw code / 10000.0.
 - `min_luminance` (float): nits, raw code / 10000.0.
@@ -364,11 +365,11 @@ bytes), else `None`.
 
 ### 1.3.0
 
-Adds a background service (`service.py`) that publishes every field in this
-document as a Home window property, prefixed `sidedata.`, so skins and
-other non-python consumers can read the same data. The fields
-`parse_sidedata()` returns are unchanged; see README.md's "From a skin"
-section for the naming rules.
+Adds a background service (`service.py`) that publishes every field in this document as a Home window property, prefixed `sidedata.`, so skins and other non-python consumers can read the same data. See README.md's "From a skin" section for the naming rules.
+
+The service also derives properties with no equivalent in `parse_sidedata()`'s return value: entry counts for `rpu.l2`, `rpu.l8`, `rpu.l10` and the HDR10+ distribution, presence flags for the whole payload and for Dolby Vision, HDR10+, MDCV and CLL individually, and first/last trim aliases for `rpu.l2` and `rpu.l8`. See README.md's "From a skin" section for their naming and semantics.
+
+`mdcv.primaries` gains a `name` field, the well known primaries set name when the decoded coordinates match one within tolerance, `None` when nothing matches. This is the one change to what `parse_sidedata()` itself returns in this release.
 
 ### 1.2.2
 

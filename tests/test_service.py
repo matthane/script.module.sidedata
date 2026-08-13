@@ -183,6 +183,18 @@ def _sample_parsed():
     }
 
 
+def _empty_parsed():
+    return {
+        'flags': [],
+        'structure': None,
+        'config': None,
+        'rpu': None,
+        'hdr10plus': None,
+        'mdcv': None,
+        'cll': None,
+    }
+
+
 class TestFormatScalar(unittest.TestCase):
     def test_bool_renders_lowercase(self):
         self.assertEqual(service._format_scalar(True), 'true')
@@ -344,6 +356,133 @@ class TestFlattenCollisions(unittest.TestCase):
         self.assertEqual(out['sidedata.hdr10plus.distribution.50'], '200')
         self.assertEqual(out['sidedata.hdr10plus.distribution.50-2'], '210')
         self.assertEqual(out['sidedata.hdr10plus.distribution.percentages'], '50 50-2')
+
+
+class TestFlattenCounts(unittest.TestCase):
+    def test_l2_count(self):
+        flat = service.flatten_sidedata(_sample_parsed())
+        self.assertEqual(flat['sidedata.rpu.l2.count'], '2')
+
+    def test_l8_count(self):
+        flat = service.flatten_sidedata(_sample_parsed())
+        self.assertEqual(flat['sidedata.rpu.l8.count'], '1')
+
+    def test_l10_count(self):
+        flat = service.flatten_sidedata(_sample_parsed())
+        self.assertEqual(flat['sidedata.rpu.l10.count'], '1')
+
+    def test_hdr10plus_distribution_count(self):
+        flat = service.flatten_sidedata(_sample_parsed())
+        self.assertEqual(flat['sidedata.hdr10plus.distribution.count'], '3')
+
+    def test_counts_absent_on_empty_lists(self):
+        parsed = _sample_parsed()
+        parsed['rpu']['l2'] = []
+        parsed['rpu']['l8'] = []
+        parsed['rpu']['l10'] = []
+        parsed['hdr10plus']['distribution'] = []
+        flat = service.flatten_sidedata(parsed)
+
+        self.assertNotIn('sidedata.rpu.l2.count', flat)
+        self.assertNotIn('sidedata.rpu.l8.count', flat)
+        self.assertNotIn('sidedata.rpu.l10.count', flat)
+        self.assertNotIn('sidedata.hdr10plus.distribution.count', flat)
+
+
+class TestFlattenPresence(unittest.TestCase):
+    def test_present_flags_on_full_sample(self):
+        flat = service.flatten_sidedata(_sample_parsed())
+        self.assertEqual(flat['sidedata.present'], 'true')
+        self.assertEqual(flat['sidedata.dovi.present'], 'true')
+        self.assertEqual(flat['sidedata.hdr10plus.present'], 'true')
+        self.assertEqual(flat['sidedata.mdcv.present'], 'true')
+        self.assertEqual(flat['sidedata.cll.present'], 'true')
+
+    def test_nothing_published_on_all_none_shape(self):
+        flat = service.flatten_sidedata(_empty_parsed())
+        self.assertEqual(flat, {})
+        self.assertNotIn('sidedata.present', flat)
+
+    def test_dovi_present_true_from_config_alone(self):
+        parsed = _empty_parsed()
+        parsed['config'] = {'profile': 7}
+        flat = service.flatten_sidedata(parsed)
+        self.assertEqual(flat['sidedata.dovi.present'], 'true')
+        self.assertEqual(flat['sidedata.present'], 'true')
+
+    def test_dovi_present_true_from_rpu_alone(self):
+        parsed = _empty_parsed()
+        parsed['rpu'] = _sample_parsed()['rpu']
+        flat = service.flatten_sidedata(parsed)
+        self.assertEqual(flat['sidedata.dovi.present'], 'true')
+
+    def test_dovi_present_absent_when_both_none(self):
+        flat = service.flatten_sidedata(_empty_parsed())
+        self.assertNotIn('sidedata.dovi.present', flat)
+
+    def test_presence_never_publishes_false(self):
+        parsed = _empty_parsed()
+        parsed['config'] = {'profile': 7}
+        flat = service.flatten_sidedata(parsed)
+        self.assertTrue(flat)
+        self.assertNotIn('false', flat.values())
+        self.assertNotIn('sidedata.hdr10plus.present', flat)
+        self.assertNotIn('sidedata.mdcv.present', flat)
+        self.assertNotIn('sidedata.cll.present', flat)
+
+
+class TestFlattenTrimAliases(unittest.TestCase):
+    def setUp(self):
+        self.flat = service.flatten_sidedata(_sample_parsed())
+
+    def test_l2_first_is_lowest_nits_entry(self):
+        self.assertEqual(self.flat['sidedata.rpu.l2.first.nits'], '100')
+        self.assertEqual(self.flat['sidedata.rpu.l2.first.slope'], '2048')
+
+    def test_l2_last_is_highest_nits_entry(self):
+        self.assertEqual(self.flat['sidedata.rpu.l2.last.nits'], '600')
+        self.assertEqual(self.flat['sidedata.rpu.l2.last.slope'], '2100')
+
+    def test_l8_first_equals_last_for_single_entry(self):
+        first_keys = {k: v for k, v in self.flat.items() if k.startswith('sidedata.rpu.l8.first.')}
+        last_keys = {k.replace('.first.', '.last.'): v for k, v in first_keys.items()}
+        expected_last = {k: v for k, v in self.flat.items() if k.startswith('sidedata.rpu.l8.last.')}
+        self.assertEqual(last_keys, expected_last)
+        self.assertEqual(self.flat['sidedata.rpu.l8.first.nits'], '300')
+        self.assertEqual(self.flat['sidedata.rpu.l8.last.nits'], '300')
+
+    def test_l10_has_no_first_last_alias(self):
+        for key in self.flat:
+            self.assertFalse(key.startswith('sidedata.rpu.l10.first'))
+            self.assertFalse(key.startswith('sidedata.rpu.l10.last'))
+
+
+class TestTrimAliasPublishCycle(unittest.TestCase):
+    def test_l2_aliases_update_through_diff_publish_cycle(self):
+        window = _FakeWindow(10000)
+        published = {}
+
+        flat1 = service.flatten_sidedata(_sample_parsed())
+        service._publish(window, published, flat1)
+        self.assertEqual(window.properties['sidedata.rpu.l2.first.nits'], '100')
+        self.assertEqual(window.properties['sidedata.rpu.l2.last.nits'], '600')
+
+        parsed2 = _sample_parsed()
+        parsed2['rpu']['l2'] = [
+            {'nits': 200, 'slope': 1800, 'offset': 2048, 'power': 2048,
+             'chromaweight': 2048, 'saturation': 2048, 'tonedetail': None,
+             'ui': {'gain': 0.0, 'lift': 0.0, 'gamma': 0.0, 'chromaweight': 0.0,
+                    'saturation': 0.0, 'tonedetail': None}},
+        ]
+        flat2 = service.flatten_sidedata(parsed2)
+        service._publish(window, published, flat2)
+
+        self.assertEqual(window.properties['sidedata.rpu.l2.first.nits'], '200')
+        self.assertEqual(window.properties['sidedata.rpu.l2.last.nits'], '200')
+        self.assertEqual(window.properties['sidedata.rpu.l2.first.slope'], '1800')
+        self.assertEqual(window.properties['sidedata.rpu.l2.count'], '1')
+        self.assertNotIn('sidedata.rpu.l2.600.slope', window.properties)
+        self.assertNotIn('sidedata.rpu.l2.600.slope', published)
 
 
 class TestPublishAndClear(unittest.TestCase):

@@ -92,6 +92,39 @@ def primaries_name(index, has_coords):
     return str(index)
 
 
+# CIE xy chromaticities for the sets in _PRIMARIES_NAMES, dovi_tool's own
+# PREDEFINED_COLORSPACE_PRIMARIES table (primaries.rs), red/green/blue/white
+_PRIMARIES_COORDS = {
+    0: ((0.680, 0.320), (0.265, 0.690), (0.150, 0.060), (0.3127, 0.3290)),
+    1: ((0.640, 0.330), (0.300, 0.600), (0.150, 0.060), (0.3127, 0.3290)),
+    2: ((0.708, 0.292), (0.170, 0.797), (0.131, 0.046), (0.3127, 0.3290)),
+    3: ((0.630, 0.340), (0.310, 0.595), (0.155, 0.070), (0.3127, 0.3290)),
+    4: ((0.640, 0.330), (0.290, 0.600), (0.150, 0.060), (0.3127, 0.3290)),
+    5: ((0.680, 0.320), (0.265, 0.690), (0.150, 0.060), (0.3140, 0.3510)),
+    6: ((0.7347, 0.2653), (0.0, 1.0), (0.0001, -0.077), (0.32168, 0.33767)),
+    7: ((0.730, 0.280), (0.140, 0.855), (0.100, -0.050), (0.3127, 0.3290)),
+    8: ((0.766, 0.275), (0.225, 0.800), (0.089, -0.087), (0.3127, 0.3290)),
+}
+
+_PRIMARIES_MATCH_TOLERANCE = 0.001
+
+
+def _coords_close(a, b):
+    return (abs(a[0] - b[0]) <= _PRIMARIES_MATCH_TOLERANCE and
+            abs(a[1] - b[1]) <= _PRIMARIES_MATCH_TOLERANCE)
+
+
+# matches decoded mdcv primaries/white point against _PRIMARIES_COORDS
+# within the SEI's own 1/50000 quantization; returns the _PRIMARIES_NAMES
+# text for the first set that matches all four points, None otherwise
+def mdcv_primaries_name(red, green, blue, white):
+    for index, (table_red, table_green, table_blue, table_white) in _PRIMARIES_COORDS.items():
+        if (_coords_close(red, table_red) and _coords_close(green, table_green) and
+                _coords_close(blue, table_blue) and _coords_close(white, table_white)):
+            return _PRIMARIES_NAMES[index]
+    return None
+
+
 # content type names per Dolby's L11 content type metadata article; 0 is a
 # defined value, undocumented codes render raw
 _CONTENT_TYPE_NAMES = {

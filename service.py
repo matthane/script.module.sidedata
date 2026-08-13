@@ -94,6 +94,7 @@ def _ordinal_key(base, counts):
 def _flatten_trim_list(prefix, entries, index_prop, out):
     if not entries:
         return
+    out[prefix + '.count'] = str(len(entries))
     tokens = []
     counts = {}
     for entry in entries:
@@ -105,11 +106,14 @@ def _flatten_trim_list(prefix, entries, index_prop, out):
         _flatten_dict(prefix + '.' + key, entry, out)
     if tokens:
         out[index_prop] = ' '.join(tokens)
+    _flatten_dict(prefix + '.first', entries[0], out)
+    _flatten_dict(prefix + '.last', entries[-1], out)
 
 
 def _flatten_l10(prefix, entries, index_prop, out):
     if not entries:
         return
+    out[prefix + '.count'] = str(len(entries))
     tokens = []
     counts = {}
     for entry in entries:
@@ -126,6 +130,7 @@ def _flatten_l10(prefix, entries, index_prop, out):
 def _flatten_distribution(prefix, entries, out):
     if not entries:
         return
+    out[prefix + '.count'] = str(len(entries))
     tokens = []
     counts = {}
     for entry in entries:
@@ -163,6 +168,34 @@ def _flatten_hdr10plus(prefix, hdr10plus, out):
             _flatten_value(prefix + '.' + key, value, out)
 
 
+def _is_present(value):
+    if value is None:
+        return False
+    if isinstance(value, (list, dict)):
+        return bool(value)
+    return True
+
+
+def _flatten_presence(parsed, out):
+    config = parsed.get('config')
+    rpu = parsed.get('rpu')
+    hdr10plus = parsed.get('hdr10plus')
+    mdcv = parsed.get('mdcv')
+    cll = parsed.get('cll')
+
+    sections = (parsed.get('flags'), parsed.get('structure'), config, rpu, hdr10plus, mdcv, cll)
+    if any(_is_present(section) for section in sections):
+        out['sidedata.present'] = 'true'
+    if _is_present(config) or _is_present(rpu):
+        out['sidedata.dovi.present'] = 'true'
+    if _is_present(hdr10plus):
+        out['sidedata.hdr10plus.present'] = 'true'
+    if _is_present(mdcv):
+        out['sidedata.mdcv.present'] = 'true'
+    if _is_present(cll):
+        out['sidedata.cll.present'] = 'true'
+
+
 def flatten_sidedata(parsed):
     out = {}
     if not isinstance(parsed, dict):
@@ -174,6 +207,7 @@ def flatten_sidedata(parsed):
     _flatten_hdr10plus('sidedata.hdr10plus', parsed.get('hdr10plus'), out)
     _flatten_value('sidedata.mdcv', parsed.get('mdcv'), out)
     _flatten_value('sidedata.cll', parsed.get('cll'), out)
+    _flatten_presence(parsed, out)
     return out
 
 

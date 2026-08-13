@@ -60,6 +60,48 @@ class TestMdcv(unittest.TestCase):
         self.assertIsNone(mdcv['primaries'])
         self.assertAlmostEqual(mdcv['white_point'][0], 0.3127, places=4)
 
+    def _pack_mdcv(self, red, green, blue, white):
+        payload = struct.pack(
+            '>8HII',
+            round(green[0] * 50000), round(green[1] * 50000),
+            round(blue[0] * 50000), round(blue[1] * 50000),
+            round(red[0] * 50000), round(red[1] * 50000),
+            round(white[0] * 50000), round(white[1] * 50000),
+            10000000, 1,
+        )
+        return statics.parse_mdcv(payload)
+
+    def test_name_matches_dci_p3_d65(self):
+        mdcv = self._pack_mdcv(
+            (0.680, 0.320), (0.265, 0.690), (0.150, 0.060), (0.3127, 0.3290))
+        self.assertEqual(mdcv['primaries']['name'], 'DCI-P3 D65')
+
+    def test_name_matches_bt2020(self):
+        mdcv = self._pack_mdcv(
+            (0.708, 0.292), (0.170, 0.797), (0.131, 0.046), (0.3127, 0.3290))
+        self.assertEqual(mdcv['primaries']['name'], 'BT.2020')
+
+    def test_name_matches_within_quantization(self):
+        # the SEI's 16 bit codes are the coordinate / 50000.0, so the coarsest
+        # step decode can introduce is 1 code = 0.00002, far under the match
+        # tolerance; build the payload from codes one off the exact BT.709
+        # values instead of from round() to exercise that slack directly
+        payload = struct.pack(
+            '>8HII',
+            round(0.300 * 50000) + 1, round(0.600 * 50000) - 1,
+            round(0.150 * 50000) + 1, round(0.060 * 50000) - 1,
+            round(0.640 * 50000) - 1, round(0.330 * 50000) + 1,
+            round(0.3127 * 50000) + 1, round(0.3290 * 50000) - 1,
+            10000000, 1,
+        )
+        mdcv = statics.parse_mdcv(payload)
+        self.assertEqual(mdcv['primaries']['name'], 'BT.709')
+
+    def test_name_absent_for_exotic_coords(self):
+        mdcv = self._pack_mdcv(
+            (0.50, 0.40), (0.20, 0.50), (0.10, 0.10), (0.3127, 0.3290))
+        self.assertIsNone(mdcv['primaries']['name'])
+
 
 class TestCll(unittest.TestCase):
     def test_vector(self):
