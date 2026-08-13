@@ -1,4 +1,4 @@
-# Files excluded from the addon release package and the addon-checker run.
+# Files excluded from the addon release package.
 # `git archive` drops every path marked export-ignore, so these stay in the
 # repo but never reach the release zip. Directories carry two entries: the
 # trailing-slash form prunes the directory from git archive, the /** form
