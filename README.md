@@ -16,9 +16,11 @@ Declare the dependency in your own `addon.xml`:
 <import addon="script.module.sidedata" version="1.2.2"/>
 ```
 
-That version is a minimum, per Kodi's `<import>` semantics. The module
-registers as an `xbmc.python.module` extension point, so `import sidedata`
-then works:
+That version is a minimum, per Kodi's `<import>` semantics. CoreELEC's
+build appends a fourth component of its own, so a module showing as
+`1.2.2.0` in Kodi satisfies an import of `1.2.2`. Import the
+three-component version. The module registers as an `xbmc.python.module`
+extension point, so `import sidedata` then works:
 
 ```python
 import sidedata

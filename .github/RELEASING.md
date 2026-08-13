@@ -17,28 +17,57 @@ Checklist for publishing a new version of this addon.
    tag matches `addon.xml`, builds `script.module.sidedata-X.Y.Z.zip` from
    a plain `git archive` of the tagged commit, and attaches it to a new
    GitHub Release.
+7. Open the CoreELEC pull request, without which nothing reaches users
+   through the add-on repository. See "Where this ships" below.
 
 The release zip is exactly what `git archive` produces once
 `.gitattributes` export-ignore rules are applied: `tests/`, `tools/` and
 the whole `.github/` tree, which holds this file, `UPDATING.md` and the
-GitHub Actions configuration, are all dropped. `FIELDS.md`, `README.md`,
-`NOTICE.md`, `LICENSE.txt`, `LICENSES/`, and the bundled `lib/` tree,
-including `native_libs/`, all ship.
+GitHub Actions configuration, are all dropped. `addon.xml`, `FIELDS.md`,
+`README.md`, `NOTICE.md`, `LICENSE.txt`, `LICENSES/`, `resources/` and the
+bundled `lib/` tree, including `native_libs/`, all ship.
 
-`.github/workflows/check.yml` runs the same `git archive` step against
-every push and pull request and feeds the result to `kodi-addon-checker`,
-so any file that would break the release build is caught before a tag is
-ever pushed.
+Nothing validates those contents automatically. `kodi-addon-checker` used
+to run here, but it enforces Kodi add-on repository policy, and this addon
+ships through CoreELEC, which uses neither that repository nor that tool.
+Its rules were never ours to satisfy, and its icon size rule actively
+conflicts with CoreELEC's own convention.
+
+Two things it did catch, worth checking by hand before tagging:
+
+- `lib/sidedata/native_libs/aarch64/libdovi.so` must stay non-executable
+  in git, so `git ls-files -s` reports mode `100644` for it. A shared
+  library needs no execute permission to be opened through `ctypes.CDLL`.
+- Anything added outside the `.gitattributes` export-ignore rules reaches
+  the zip. `git archive --format=tar HEAD | tar -t` lists what ships.
 
 ## Where this ships
 
-There is no established CoreELEC addon submission process for third-party
-Python addons yet. CoreELEC ships its own repository addon built from
-packages in the CoreELEC git tree, which is a different thing from a
-community addon repo. Until a CE venue exists, the GitHub Release built
-by this workflow is the distribution channel: users install from the zip
-directly (Add-ons, install from zip file).
+Through CoreELEC. Their distro repo carries a `package.mk` under
+`packages/addons/script/`, which pulls a tarball of this repo pinned by
+commit SHA; the source itself is never copied into their tree. GitHub's
+archive endpoint honours `export-ignore`, so what they receive is the same
+file set as the release zip above.
 
-`release.yml` includes a commented-out job for `kodi-addon-submitter`,
-shaped after `script.audiooffsetmanager.evolved`'s own submission job, so
-the workflow is ready to enable the day a submission venue is confirmed.
+Publishing a new version is therefore two steps, not one: tag here, then
+open a pull request against `CoreELEC/CoreELEC` bumping `PKG_VERSION` to
+the new commit SHA and `PKG_SHA256` to its hash. There is no self-service
+path and no way to hotfix, so their review and release cadence sets how
+fast a fix reaches anyone.
+
+CoreELEC's build appends its own `PKG_REV` to whatever version `addon.xml`
+declares, rewriting the file in place, so `1.2.2` reaches users as
+`1.2.2.0`. Keep three components here and let them add the fourth. Addons
+depending on this one should import the version tagged here, since Kodi
+treats `<import>` as a minimum and the four-part version satisfies it.
+
+Their packaging can also fold a `changelog.txt` into the addon's news
+field, but it does so by substituting `@PKG_ADDON_NEWS@` in the `addon.xml`
+being built. This addon ships its own `addon.xml`, which carries no such
+placeholder, so that step is a no-op here. Anything worth showing in
+Kodi's add-on information dialog has to be a `<news>` element maintained
+in `addon.xml` directly, which is why there is no `changelog.txt` in this
+repo.
+
+The GitHub Release remains the direct-install route for anyone sideloading
+(Add-ons, install from zip file).
