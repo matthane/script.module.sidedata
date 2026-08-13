@@ -12,5 +12,8 @@
     </assets>
     <platform>all</platform>
     <license>GPL-2.0-or-later</license>
+    <news>Initial release.
+
+Parses the raw Dolby Vision and HDR side data that CoreELEC's Amlogic video player publishes on the player.process(video.sidedata) infolabel: the Dolby Vision RPU, the dvcC/dvvC configuration record, HDR10+ ST 2094-40 dynamic metadata, and the static MDCV and CLL payloads.</news>
   </extension>
 </addon>

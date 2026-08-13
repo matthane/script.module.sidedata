@@ -4,6 +4,8 @@ Checklist for publishing a new version of this addon.
 
 1. Bump the version in `addon.xml`. Kodi addon versions must increase for
    Kodi to offer an update, so this has to happen even for small changes.
+   Update the `<news>` element in the same file while you are there; that
+   is what Kodi shows in the add-on information dialog.
 2. Update the version notes in `NOTICE.md` and `README.md` if the change
    touches the bundled library or its pinned versions (see UPDATING.md).
 3. Run the local test suite: `python3 -m unittest discover tests`. On a
@@ -66,8 +68,8 @@ field, but it does so by substituting `@PKG_ADDON_NEWS@` in the `addon.xml`
 being built. This addon ships its own `addon.xml`, which carries no such
 placeholder, so that step is a no-op here. Anything worth showing in
 Kodi's add-on information dialog has to be a `<news>` element maintained
-in `addon.xml` directly, which is why there is no `changelog.txt` in this
-repo.
+in `addon.xml` directly, which is what this addon does, and why there is
+no `changelog.txt` in this repo.
 
 The GitHub Release remains the direct-install route for anyone sideloading
 (Add-ons, install from zip file).
