@@ -22,8 +22,8 @@ Result shape of parse_sidedata()
   'cll': {...} or None,       # content light level
 }
 
-See FIELDS.md for the complete field-by-field reference, pinned per addon
-release. The RPU is parsed entirely by libdovi (native.py, quietvoid's
+See FIELDS.md for the complete field-by-field reference and its
+per-release changelog. The RPU is parsed entirely by libdovi (native.py, quietvoid's
 dovi_tool via ctypes); the HDR10+ section is parsed entirely by the
 platform's libavutil (avutil.py, av_dynamic_hdr_plus_from_t35 via ctypes).
 Name tables and value scalings (PQ-to-nits, target-nits snapping, primaries

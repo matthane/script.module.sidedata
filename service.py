@@ -1,7 +1,7 @@
 """service.py, the sidedata addon's Kodi service: publishes parse_sidedata's
 output as Home window properties so skins and other non-python consumers can
-read the same fields the python module exposes. See README.md's "Skins and
-window properties" section for the naming rules this mirrors from FIELDS.md.
+read the same fields the python module exposes. See README.md's "From a skin"
+section for the naming rules this mirrors from FIELDS.md.
 
 The flattening functions (flatten_sidedata and its helpers) take a plain
 dict and return a plain {property_name: string_value} dict; they touch no
