@@ -1,3 +1,5 @@
+<img src="resources/icon.png" alt="" width="128" align="right">
+
 # script.module.sidedata
 
 A CoreELEC addon. It parses the raw Dolby Vision and HDR sidedata that
