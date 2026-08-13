@@ -103,6 +103,10 @@ class TestParseSidedata(unittest.TestCase):
         result = sidedata.parse_sidedata(json.dumps({'flags': 'converted'}))
         self.assertIsNone(result['structure'])
 
+    def test_structure_wrong_type_is_none(self):
+        result = sidedata.parse_sidedata(json.dumps({'structure': 7}))
+        self.assertIsNone(result['structure'])
+
     def test_empty_string(self):
         result = sidedata.parse_sidedata('')
         self.assertEqual(result, {

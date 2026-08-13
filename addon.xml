@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.module.sidedata" name="Side Data Parsers" version="1.2.2" provider-name="matthane">
+<addon id="script.module.sidedata" name="Side Data Parsers" version="1.3.0" provider-name="matthane">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
   <extension point="xbmc.python.module" library="lib"/>
+  <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">CoreELEC 22 parsers for raw Dolby Vision and HDR10+ metadata payloads.</summary>
     <description lang="en_GB">A CoreELEC addon built for CoreELEC 22, running on all of its current Amlogic devices. Parses the DV/HDR sidedata JSON that CoreELEC's Amlogic video player publishes via player.process(video.sidedata), a CoreELEC-specific infolabel not present in stock Kodi (so stock Kodi is not supported): the Dolby Vision RPU, the dvcC/dvvC configuration record, HDR10+ ST 2094-40 dynamic metadata, and the static MDCV/CLL SEI payloads. Stdlib only, no required external dependencies; RPU parsing uses libdovi via ctypes (bundled for aarch64), HDR10+ parsing uses CoreELEC's own libavutil via ctypes (CoreELEC 22's ffmpeg 8.1.2 or 9.0, borrowed at runtime, never bundled). Both sections are None when their engine isn't available.</description>
@@ -12,8 +13,6 @@
     </assets>
     <platform>all</platform>
     <license>GPL-2.0-or-later</license>
-    <news>Initial release.
-
-Parses the raw Dolby Vision and HDR side data that CoreELEC's Amlogic video player publishes on the player.process(video.sidedata) infolabel: the Dolby Vision RPU, the dvcC/dvvC configuration record, HDR10+ ST 2094-40 dynamic metadata, and the static MDCV and CLL payloads.</news>
+    <news>v1.3.0: adds a background service that publishes the parsed fields as Home window properties for skins and other non-python consumers.</news>
   </extension>
 </addon>

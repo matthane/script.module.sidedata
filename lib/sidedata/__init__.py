@@ -75,7 +75,9 @@ def parse_sidedata(json_str):
     if isinstance(flags, str) and flags.strip():
         result['flags'] = flags.split()
 
-    result['structure'] = data.get('structure')
+    structure = data.get('structure')
+    if isinstance(structure, str):
+        result['structure'] = structure
 
     config_b64 = data.get('dovi.config')
     if config_b64:

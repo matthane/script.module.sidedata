@@ -86,6 +86,55 @@ the fixed-layout unpacks for dvcC/dvvC, MDCV and CLL.
   bindings mirror a fixed upstream build. See `.github/UPDATING.md` before
   moving either pin.
 
+## Skins and window properties
+
+Alongside the python module, this addon runs a small service that publishes
+every parsed field as a Home window property, so a skin or any other
+non-python consumer can read the same data without touching python at all.
+Property names are prefixed `sidedata.` and mirror the field paths in
+FIELDS.md, so `rpu.header.el_type` becomes `sidedata.rpu.header.el_type`
+and `rpu.l6.max_cll` becomes `sidedata.rpu.l6.max_cll`. Skins read a
+property like this:
+
+```xml
+$INFO[Window(Home).Property(sidedata.rpu.profile)]
+```
+
+A few sections need their own naming rule because they hold lists rather
+than a single dict. `flags`, `hdr10plus.maxscl` and `hdr10plus.bezier_anchors`
+each publish as one space separated property. Coordinate pairs such as
+`mdcv.primaries.red` or `rpu.l9.coords.white` split into `.x` and `.y`
+properties. The L2 and L8 trim passes key by their nits value, so a 600 nit
+L2 trim's gain lands at `sidedata.rpu.l2.600.ui.gain`, with
+`sidedata.rpu.l2.nits` listing every nits value present so a skin can
+enumerate them; L8 works the same way. L10 target displays key by
+`target_display_index` instead, since two L10 blocks can share a nits value,
+with `sidedata.rpu.l10.indexes` listing the indexes present. HDR10+'s
+distribution keys by percentile the same way, `sidedata.hdr10plus.distribution.50`
+for the 50th percentile's nits value and
+`sidedata.hdr10plus.distribution.percentages` for the percentiles present.
+
+Two blocks in the same section can resolve to the same key. The Known
+limitations section below describes how two L2 or L8 trims can snap to the
+same nits value, and the same collision handling covers an HDR10+
+distribution percentile or an L10 index appearing twice. When it happens
+the first block keeps the plain key and every later one gets a dash and an
+ordinal appended, so a second 300 nit L2 trim publishes at
+`sidedata.rpu.l2.300-2` rather than overwriting the first trim's fields.
+The enumeration property for that section, `sidedata.rpu.l2.nits` and its
+siblings, lists the exact tokens in the order the blocks appeared, dash
+suffixes included, so a skin can walk every one of them by taking each
+token as the next path segment.
+
+Booleans publish as `true` or `false`, floats are trimmed of trailing
+zeros, and a field that is `None` or a section absent from the current
+frame publishes no property at all.
+
+Properties follow the metadata within about a tenth of a second, aligned to
+scene cuts, and clear the moment playback stops or the RPU disappears from
+the label. No import or dependency declaration is needed for this path; the
+service starts on its own once the addon is installed.
+
 ## Known limitations
 
 - Two L2 or L8/L10 blocks that resolve to the same nits value (preset

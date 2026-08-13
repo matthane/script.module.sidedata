@@ -6,6 +6,11 @@ so a consumer built against an older release can still find the shape it
 integrated against. The newest section is authoritative for current
 consumers; see `README.md` for architecture and usage.
 
+Every field documented below is also published live as a Home window
+property, prefixed `sidedata.` and named after its path in this document.
+See README.md's "Skins and window properties" section for the exact naming
+rules for lists, trims and coordinate pairs.
+
 
 ## 1.2.2
 
