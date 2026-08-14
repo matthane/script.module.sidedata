@@ -75,7 +75,7 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 
 ## Known limitations
 
-- Two L2/L8/L10 blocks resolving to the same nits value (preset indices 24 and 25 both map to 300 nits) both appear in their list. Callers keying by nits get list order, RPU order for ties, not uniqueness.
+- Two blocks of the same level can resolve to the same nits value, since distinct raw targets snap to the same preset bucket (dovi_tool's own info output rounds the same way and prints such duplicates too). Both appear in their list. Callers keying by nits get list order, RPU order for ties, not uniqueness.
 - HDR10+ exposes processing window 0 only. `num_windows` is still reported so a caller can detect the multi-window case, which has not been seen in practice.
 - Individual L8 secondary 6-vector saturation and hue trims (block length 19/25) are not exposed by libdovi's own `DoviExtMetadataBlockLevel8`.
 - A malformed DV RPU can rarely panic inside libdovi (Rust, with no `catch_unwind` across its C API) and abort the host process. That is uncatchable from Python, so the never-raises guarantee does not cover it. CoreELEC's own player feeds the same bytes to the same library during playback, so this isn't exposure the addon adds. An upstream fix is tracked.
