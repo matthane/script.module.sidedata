@@ -53,8 +53,8 @@ no way to hotfix, so their review and release cadence sets how fast a fix
 reaches anyone.
 
 CoreELEC's build appends its own `PKG_REV` to whatever version `addon.xml`
-declares, rewriting the file in place, so `1.2.2` reaches users as
-`1.2.2.0`. Keep three components here and let them add the fourth. Addons
+declares, rewriting the file in place, so `1.3.0` reaches users as
+`1.3.0.0`. Keep three components here and let them add the fourth. Addons
 depending on this one should import the version tagged here, since Kodi
 treats `<import>` as a minimum and the four-part version satisfies it.
 

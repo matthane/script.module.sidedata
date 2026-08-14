@@ -13,6 +13,6 @@
     </assets>
     <platform>all</platform>
     <license>GPL-2.0-or-later</license>
-    <news>v1.3.0: adds a background service that publishes the parsed fields as Home window properties for skins and other non-python consumers.</news>
+    <news>v1.3.0: initial release, parsing CoreELEC's raw DV/HDR sidedata JSON and publishing the parsed fields as Home window properties through a background service, for skins and other non-python consumers.</news>
   </extension>
 </addon>

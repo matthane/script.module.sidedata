@@ -1,12 +1,6 @@
 # Field reference
 
-This document is the field-by-field reference for the dict `parse_sidedata()`
-returns, current as of 1.3.0. The shape an older release published is in
-that release's git tag, and the [Changelog](#changelog) at the end lists
-what each version changed. Every field documented below is also
-published live as a Home window property, prefixed `sidedata.` and named
-after its path in this document. See README.md's "From a skin" section for
-the exact naming rules for lists, trims and coordinate pairs.
+This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.3.0, the initial release. The [Changelog](#changelog) at the end describes what this release includes. Every field documented below is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs.
 
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the
 L9/L10 primaries table, L11 content-type and whitepoint tables, the L2/L8
@@ -365,23 +359,4 @@ bytes), else `None`.
 
 ### 1.3.0
 
-Adds a background service (`service.py`) that publishes every field in this document as a Home window property, prefixed `sidedata.`, so skins and other non-python consumers can read the same data. See README.md's "From a skin" section for the naming rules.
-
-The service also derives properties with no equivalent in `parse_sidedata()`'s return value: entry counts for `rpu.l2`, `rpu.l8`, `rpu.l10` and the HDR10+ distribution, presence flags for the whole payload and for Dolby Vision, HDR10+, MDCV and CLL individually, and first/last trim aliases for `rpu.l2` and `rpu.l8`. See README.md's "From a skin" section for their naming and semantics.
-
-`mdcv.primaries` gains a `name` field, the well known primaries set name when the decoded coordinates match one within tolerance, `None` when nothing matches. This is the one change to what `parse_sidedata()` itself returns in this release.
-
-### 1.2.2
-
-Adds the top-level `structure` field, read from the label's `structure`
-key: `st-dl` or `dt-dl` for a dual-layer Dolby Vision stream, `None` for
-single-layer.
-
-### 1.2.0
-
-First versioned field reference; this document was split out of README.md.
-Covers the dict shape carried forward since: `flags`, `config`, `rpu`
-(`header` plus `l1` through `l11`), `hdr10plus`, `mdcv`, `cll`. The `flags`
-key itself was renamed from the earlier `dovi.flags`, and its vocabulary
-gained the `hdr10plus-removed` token alongside `converted`, `rpu-removed`
-and `l5-zeroed`.
+Initial release. Provides the `sidedata` parser module (`parse_sidedata()`), which decodes CoreELEC's raw DV/HDR sidedata JSON into `flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv` and `cll`, and a background window property service (`service.py`) that publishes every field above, plus derived properties (entry counts for `rpu.l2`, `rpu.l8`, `rpu.l10` and the HDR10+ distribution, presence flags for the whole payload and for Dolby Vision, HDR10+, MDCV and CLL individually, and first/last trim aliases for `rpu.l2` and `rpu.l8`), as Home window properties for skins and other non-python consumers.
