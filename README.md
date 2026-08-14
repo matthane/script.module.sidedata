@@ -9,10 +9,10 @@ A CoreELEC addon that parses the raw Dolby Vision and HDR sidedata CoreELEC's Am
 Declare the dependency in your own `addon.xml`:
 
 ```xml
-<import addon="script.module.sidedata" version="1.3.0"/>
+<import addon="script.module.sidedata" version="1.4.1"/>
 ```
 
-That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends its own fourth component, so a module reporting `1.3.0.0` still satisfies an import of `1.3.0`. Import the three-component version.
+That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends its own fourth component, so a module reporting `1.4.1.0` still satisfies an import of `1.4.1`. Import the three-component version.
 
 The module registers as an `xbmc.python.module` extension point, so `import sidedata` works once declared:
 
