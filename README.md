@@ -2,7 +2,7 @@
 
 # script.module.sidedata
 
-A CoreELEC addon that parses the raw Dolby Vision and HDR sidedata CoreELEC's Amlogic video player publishes through the `player.process(video.sidedata)` infolabel, and returns it as a plain dict. Needs CoreELEC 22 on an Amlogic device, not stock Kodi. Nothing beyond Kodi's bundled Python is required.
+A CoreELEC addon that parses the raw Dolby Vision and HDR sidedata CoreELEC's Amlogic video player publishes through the `player.process(video.sidedata)` infolabel, and returns it as a plain dict. Needs CoreELEC 22 on an Amlogic device, not stock Kodi.
 
 ## From an addon
 
