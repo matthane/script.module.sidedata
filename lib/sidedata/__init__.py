@@ -72,8 +72,8 @@ def parse_sidedata(json_str):
         return result
 
     flags = data.get('flags')
-    if isinstance(flags, str) and flags.strip():
-        result['flags'] = flags.split()
+    if isinstance(flags, list):
+        result['flags'] = [f for f in flags if isinstance(f, str)]
 
     structure = data.get('structure')
     if isinstance(structure, str):

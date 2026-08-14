@@ -59,7 +59,7 @@ def _build_sidedata_json():
     cll = bytes.fromhex('03e80190')
 
     payload = {
-        'flags': 'converted rpu-removed',
+        'flags': ['converted', 'rpu-removed'],
         'dovi.config': _b64(config),
         'dovi.rpu': _b64(nal62),
         'hdr10plus': _b64(hdr10plus_payload),
@@ -100,12 +100,28 @@ class TestParseSidedata(unittest.TestCase):
         self.assertEqual(result['structure'], 'st-dl')
 
     def test_structure_absent(self):
-        result = sidedata.parse_sidedata(json.dumps({'flags': 'converted'}))
+        result = sidedata.parse_sidedata(json.dumps({'flags': ['converted']}))
         self.assertIsNone(result['structure'])
 
     def test_structure_wrong_type_is_none(self):
         result = sidedata.parse_sidedata(json.dumps({'structure': 7}))
         self.assertIsNone(result['structure'])
+
+    def test_flags_list_parses(self):
+        result = sidedata.parse_sidedata(json.dumps({'flags': ['converted', 'rpu-removed']}))
+        self.assertEqual(result['flags'], ['converted', 'rpu-removed'])
+
+    def test_flags_wrong_type_string_is_empty(self):
+        result = sidedata.parse_sidedata(json.dumps({'flags': 'converted rpu-removed'}))
+        self.assertEqual(result['flags'], [])
+
+    def test_flags_wrong_type_int_is_empty(self):
+        result = sidedata.parse_sidedata(json.dumps({'flags': 7}))
+        self.assertEqual(result['flags'], [])
+
+    def test_flags_list_with_non_str_items_filters_them(self):
+        result = sidedata.parse_sidedata(json.dumps({'flags': ['converted', 7, None]}))
+        self.assertEqual(result['flags'], ['converted'])
 
     def test_empty_string(self):
         result = sidedata.parse_sidedata('')

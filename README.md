@@ -54,7 +54,7 @@ Properties follow the metadata within about a tenth of a second, aligned to scen
 
 ## Input
 
-The infolabel returns a JSON object whose payloads are base64-encoded bytes, except `flags` and `structure`, which are plain text.
+The infolabel returns a JSON object whose payloads are base64-encoded bytes, except `structure`, which is plain text, and `flags`, which is a JSON array of strings.
 
 | key | contents |
 |---|---|
@@ -63,7 +63,7 @@ The infolabel returns a JSON object whose payloads are base64-encoded bytes, exc
 | `hdr10plus` | ST 2094-40 ITU-T T.35 payload from the country code (`B5 00 3C 00 01 04`), unescaped |
 | `mdcv` | mastering display colour volume SEI payload, 24 bytes |
 | `cll` | content light level SEI payload, 4 bytes |
-| `flags` | space-separated tokens from `{converted, rpu-removed, hdr10plus-removed, l5-zeroed}` |
+| `flags` | JSON array of tokens from `{converted, rpu-removed, hdr10plus-removed, l5-zeroed}` |
 | `structure` | `st-dl` or `dt-dl` for a dual-layer Dolby Vision stream, absent for single-layer |
 
 ## Under the hood

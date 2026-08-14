@@ -592,7 +592,7 @@ class TestTick(unittest.TestCase):
 
     def test_new_label_publishes_parsed_fields(self):
         self.player.playing = True
-        _fake_xbmc.info_label = '{"structure": "st-dl", "flags": "converted"}'
+        _fake_xbmc.info_label = '{"structure": "st-dl", "flags": ["converted"]}'
 
         service._tick(self.player, self.window, self.state)
 

@@ -53,10 +53,11 @@ under the equivalent absent/empty case.
 
 ## flags
 
-- `flags` (list of str): the `flags` key split on whitespace. Vocabulary is
-  `converted`, `rpu-removed`, `hdr10plus-removed`, `l5-zeroed`, per the
-  sidedata contract in `README.md`. This addon passes the tokens through
-  unchanged; it does not interpret them.
+- `flags` (list of str): the tokens from the label's `flags` key, a JSON
+  array of strings. Vocabulary is `converted`, `rpu-removed`,
+  `hdr10plus-removed`, `l5-zeroed`, per the sidedata contract in
+  `README.md`. This addon passes the tokens through unchanged; it does not
+  interpret them.
 
 ## structure
 
@@ -356,6 +357,13 @@ bytes), else `None`.
 - `max_fall` (int): maximum frame average light level, nits.
 
 ## Changelog
+
+### 1.4.0
+
+The raw `flags` key in the sidedata JSON is now a JSON array of strings
+instead of a space-separated string. `parse_sidedata()` accepts the new
+form; the `flags` field in its returned dict is unchanged, still a list
+of str.
 
 ### 1.3.0
 
