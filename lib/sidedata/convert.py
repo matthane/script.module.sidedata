@@ -52,7 +52,9 @@ def snap_target_nits(nits):
 
 
 # nits for the preset L8/L10 target_display_index values. 20/22/23 belong to
-# the mastering display id namespace and unknown indices resolve nothing
+# the mastering display id namespace and unknown indices resolve nothing.
+# 24/25 come from dolby's target display documentation, not dovi_tool's
+# preset list, so they will not cross-check against its sources
 _TARGET_INDEX_NITS = {
     1: 100,
     16: 48, 18: 48, 21: 48,
