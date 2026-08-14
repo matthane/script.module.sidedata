@@ -40,11 +40,26 @@ hand before tagging:
 
 ## Where this ships
 
-Through CoreELEC. Their distro repo carries a `package.mk` under
-`packages/addons/script/`, which pulls a tarball of this repo pinned by
-commit SHA; the source itself is never copied into their tree. GitHub's
-archive endpoint honours `export-ignore`, so what they receive is the same
-file set as the release zip above.
+Through CoreELEC. Their distro repo carries a `package.mk` that pulls a
+tarball of this repo pinned by commit SHA; the source itself is never
+copied into their tree. GitHub's archive endpoint honours `export-ignore`,
+so what they receive is the same file set as the release zip above.
+
+Nothing is agreed with CoreELEC yet, so the path below is our proposal, not
+a settled fact. Best fit is
+`projects/Amlogic-ce/packages/addons/script/sidedata/package.mk`, with
+`PKG_NAME="sidedata"` and `PKG_SECTION="script.module"`. That project
+directory is where their Amlogic-only addons live, which this is, and the
+addon id is built as `${PKG_SECTION}.${PKG_NAME}`, so those two values are
+what keeps it `script.module.sidedata`. `packages/addons/script/steamlink`
+is the same shape one level up, section `script.program` and name
+`steamlink`. The `script` directory rather than `service` follows the addon
+id, not the extension point order, so the addon presenting as a service in
+Kodi does not move it.
+
+`PKG_ADDON_TYPE` only picks a template `addon.xml` for packages that ship
+none. This one ships its own, so the value is inert here and CoreELEC's
+build edits nothing in it but the version.
 
 Publishing a new version takes two steps: tag here, then open a pull
 request against `CoreELEC/CoreELEC` bumping `PKG_VERSION` to the new
