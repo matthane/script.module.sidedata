@@ -41,7 +41,7 @@ hand before tagging:
 ## Where this ships
 
 Through CoreELEC. Their distro repo carries a `package.mk` that pulls a
-tarball of this repo pinned by commit SHA; the source itself is never
+tarball of this repo pinned by release tag; the source itself is never
 copied into their tree. GitHub's archive endpoint honours `export-ignore`,
 so what they receive is the same file set as the release zip above.
 
@@ -62,10 +62,16 @@ none. This one ships its own, so the value is inert here and CoreELEC's
 build edits nothing in it but the version.
 
 Publishing a new version takes two steps: tag here, then open a pull
-request against `CoreELEC/CoreELEC` bumping `PKG_VERSION` to the new
-commit SHA and `PKG_SHA256` to its hash. There is no self-service path and
-no way to hotfix, so their review and release cadence sets how fast a fix
-reaches anyone.
+request against `CoreELEC/CoreELEC` titled `sidedata: bump package to
+X.Y.Z`. Pin `PKG_VERSION` to the new release tag, for example `1.4.2`,
+not the raw commit SHA, and set `PKG_SHA256` to the hash of
+`archive/vX.Y.Z.tar.gz`. `PKG_URL` needs the `v` prefix in front of
+`${PKG_VERSION}` for that archive path to resolve. Pin to the tag rather
+than the commit SHA: hashing a commit-pinned download is redundant once
+the SHA already pins the content, while hashing a tagged download is a
+real integrity check. There is no self-service path and no way to
+hotfix, so their review and release cadence sets how fast a fix reaches
+anyone.
 
 CoreELEC's build appends its own `PKG_REV` to whatever version `addon.xml`
 declares, rewriting the file in place, so `1.3.0` reaches users as
