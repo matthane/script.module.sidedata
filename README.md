@@ -9,10 +9,10 @@ A CoreELEC addon that parses the raw Dolby Vision and HDR sidedata CoreELEC's Am
 Declare the dependency in your own `addon.xml`:
 
 ```xml
-<import addon="script.module.sidedata" version="1.4.1"/>
+<import addon="script.module.sidedata" version="1.4.2"/>
 ```
 
-That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends its own fourth component, so a module reporting `1.4.1.0` still satisfies an import of `1.4.1`. Import the three-component version.
+That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends a fourth component, so a module reporting `1.4.2.0` still satisfies an import of `1.4.2`. Import the three-component version.
 
 The module registers as an `xbmc.python.module` extension point, so `import sidedata` works once declared:
 
@@ -25,7 +25,7 @@ if result['rpu'] and result['rpu']['l1']:
     print(result['rpu']['l1']['max_nits'])
 ```
 
-`parse_sidedata` never raises. Missing or empty input, an unavailable engine, or a payload that fails to parse each degrade only that section to `None` rather than failing the whole call. The result has seven keys (`flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`), each `None` when absent or unparseable except `flags`, which is `[]`. See [FIELDS.md](FIELDS.md) for the field reference, updated with a changelog per release.
+`parse_sidedata` never raises. Missing or empty input, an unavailable engine, or a payload that fails to parse each degrade only that section to `None` rather than failing the whole call. The result has seven keys (`flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`), each `None` when absent or unparseable except `flags`, which is `[]`. See [FIELDS.md](FIELDS.md) for the field reference, with a changelog per release.
 
 ## From a skin
 
@@ -48,9 +48,9 @@ $INFO[Window(Home).Property(sidedata.rpu.profile)]
 | derived: L2/L8 first/last trim by nits, duplicating that entry's keyed fields | `sidedata.rpu.l2.first.ui.gain`, `sidedata.rpu.l2.last.ui.gain` |
 | derived: presence flags for the whole payload, Dolby Vision, HDR10+, MDCV and CLL | `sidedata.present`, `sidedata.dovi.present`, `sidedata.hdr10plus.present` |
 
-Each enumeration property lists the exact tokens in the order the blocks appeared, dash suffixes included, so a skin can walk every one by taking each token as the next path segment. Booleans publish as `true` or `false`, floats drop trailing zeros, and a field that's `None` or absent from the current frame publishes no property at all. Presence flags only ever publish `true`, and a skin reads their absence as false with `String.IsEmpty`.
+Each enumeration property lists the exact tokens in the order the blocks appeared, dash suffixes included, so a skin can walk every one by taking each token as the next path segment. Booleans publish as `true` or `false`, floats drop trailing zeros, and a field that's `None` or absent from the current frame publishes no property. Presence flags only ever publish `true`, so a skin reads absence as false with `String.IsEmpty`.
 
-Properties follow the metadata within about a tenth of a second, aligned to scene cuts, and clear the moment playback stops or the RPU disappears from the label. No import or dependency declaration is needed for this path. The service starts on its own once the addon is installed.
+Properties follow the metadata within about a tenth of a second, aligned to scene cuts, and clear when playback stops or the RPU disappears from the label. No import is needed for this path. The service starts on its own once the addon is installed.
 
 ## Input
 
@@ -66,12 +66,12 @@ The infolabel returns a JSON object whose payloads are base64-encoded bytes, exc
 | `flags` | JSON array of tokens from `{converted, rpu-removed, hdr10plus-removed, l5-zeroed}` |
 | `structure` | `st-dl` or `dt-dl` for a dual-layer Dolby Vision stream, absent for single-layer |
 
-## Under the hood
+## Parsing engines
 
 No bitstream parsing happens in Python. Both engines are real libraries called through `ctypes`. This package handles dispatch, unit conversion, and the fixed-layout unpacks for dvcC/dvvC, MDCV and CLL.
 
-- **Dolby Vision RPU** uses [quietvoid's `libdovi`](https://github.com/quietvoid/dovi_tool), bundled for aarch64. The loader tries `SIDEDATA_LIBDOVI_PATH`, then the bundled build, then a platform `libdovi.so` (by soname, then `find_library`). There is no pure-Python fallback, so `result['rpu']` is `None` if none resolve.
-- **HDR10+** uses FFmpeg's `libavutil`, borrowed at runtime from CoreELEC's own copy and never bundled. `avutil.py` checks `avutil_version()` on load and refuses an unrecognized major (60 or 61, CoreELEC 22's ffmpeg), since a struct layout mismatch would be silent memory corruption rather than an error. Both bindings mirror a fixed upstream build for that reason. See `.github/UPDATING.md` before moving either pin.
+- Dolby Vision RPU uses [quietvoid's `libdovi`](https://github.com/quietvoid/dovi_tool), bundled for aarch64. The loader tries `SIDEDATA_LIBDOVI_PATH`, then the bundled build, then a platform `libdovi.so` (by soname, then `find_library`). There is no pure-Python fallback, so `result['rpu']` is `None` if none resolve.
+- HDR10+ uses FFmpeg's `libavutil`, borrowed at runtime from CoreELEC's own copy and never bundled. `avutil.py` checks `avutil_version()` on load and refuses an unrecognized major (60 or 61, CoreELEC 22's ffmpeg), since a struct layout mismatch would be silent memory corruption rather than an error. Both bindings mirror a fixed upstream build for that reason. See `.github/UPDATING.md` before moving either pin.
 
 ## Known limitations
 
@@ -84,4 +84,3 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 GPL-2.0-or-later, full text in `LICENSE.txt`.
 
 The bundled aarch64 `libdovi-3.3.1` build is quietvoid's, MIT licensed, with its license text in `LICENSES/dovi_tool.MIT`. `libavutil` (part of FFmpeg, LGPL-2.1-or-later) is CoreELEC's own copy, loaded at runtime, with no FFmpeg code vendored or linked. See `NOTICE.md` for the full third-party notices.
-

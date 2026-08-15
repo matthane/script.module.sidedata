@@ -83,7 +83,7 @@ Checklist for covering a new `libavutil` major in `lib/sidedata/avutil.py`
    the common case since a dev host's system ffmpeg rarely matches CE's
    pinned major, verify on device, the same way HDR10+ conformance has
    been proven since this addon moved off the pure-Python parser.
-4. Update the pinned majors in `README.md`'s "Under the hood" section and
+4. Update the pinned majors in `README.md`'s "Parsing engines" section and
    the version notes in `NOTICE.md`.
 5. Bump the addon version in `addon.xml`.
 6. Rebuild the addon zip.
