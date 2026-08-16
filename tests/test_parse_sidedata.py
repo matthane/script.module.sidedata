@@ -25,7 +25,7 @@ _FIXTURES_SKIP_REASON = (
     _FIXTURES_DIR + ' or point SIDEDATA_FIXTURES_DIR at them; see .github/UPDATING.md'
 )
 TESTDATA = _FIXTURES_DIR
-_HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64')
+_HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.4.0.x86_64')
 if 'SIDEDATA_LIBDOVI_PATH' not in os.environ and os.path.isfile(_HOST_LIBDOVI):
     os.environ['SIDEDATA_LIBDOVI_PATH'] = _HOST_LIBDOVI
 _NATIVE_AVAILABLE = native.available()

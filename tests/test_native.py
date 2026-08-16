@@ -26,7 +26,7 @@ TESTDATA = _FIXTURES_DIR
 # host-test libdovi build, outside the repo (see tools/build-libdovi.sh and
 # .github/UPDATING.md) - wired in automatically so the golden fixtures below run
 # through the real bindings on this host, not only on-device
-_HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64')
+_HOST_LIBDOVI = os.path.expanduser('~/ce/dvhdr-testdata/libdovi.so.3.4.0.x86_64')
 if 'SIDEDATA_LIBDOVI_PATH' not in os.environ and os.path.isfile(_HOST_LIBDOVI):
     os.environ['SIDEDATA_LIBDOVI_PATH'] = _HOST_LIBDOVI
 
@@ -41,7 +41,7 @@ _reset_native_cache()
 _NATIVE_AVAILABLE = native.available()
 _SKIP_REASON = (
     "no native libdovi found (SIDEDATA_LIBDOVI_PATH unset, "
-    "~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64 missing, and "
+    "~/ce/dvhdr-testdata/libdovi.so.3.4.0.x86_64 missing, and "
     "ctypes.util.find_library('dovi') found nothing) - tools/build-libdovi.sh "
     "documents building a host build the same way, see .github/UPDATING.md"
 )

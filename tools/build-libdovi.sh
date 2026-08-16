@@ -9,7 +9,7 @@
 # testing (never packaged into the addon zip). See .github/UPDATING.md.
 set -euo pipefail
 
-LIBDOVI_TAG="libdovi-3.3.1"
+LIBDOVI_TAG="libdovi-3.4.0"
 SRC_URL="https://github.com/quietvoid/dovi_tool/archive/refs/tags/${LIBDOVI_TAG}.tar.gz"
 TARGET_TRIPLE="aarch64-unknown-linux-gnu"
 CROSS_CC="aarch64-linux-gnu-gcc"
@@ -36,9 +36,9 @@ if command -v cargo >/dev/null 2>&1 && command -v "$CROSS_CC" >/dev/null 2>&1; t
   (
     cd "$SRC_DIR"
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="$CROSS_CC" \
-      cargo cbuild --release --target "$TARGET_TRIPLE" --library-type cdylib
+      cargo cbuild --profile release-deploy --target "$TARGET_TRIPLE" --library-type cdylib
   )
-  OUT="$SRC_DIR/target/$TARGET_TRIPLE/release/libdovi.so"
+  OUT="$SRC_DIR/target/$TARGET_TRIPLE/release-deploy/libdovi.so"
 else
   echo "no rustup + cargo-c + $CROSS_CC toolchain found on this host" >&2
   echo "path (b): any aarch64-glibc cross toolchain works too - e.g. the" >&2

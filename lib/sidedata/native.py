@@ -1,6 +1,6 @@
 # ctypes bindings to the platform libdovi (quietvoid/dovi_tool), the sole
 # RPU parsing engine; see rpu.py, which just dispatches here. Struct
-# layouts mirror libdovi-3.3.1's rpu_parser.h field-for-field (see
+# layouts mirror libdovi-3.4.0's rpu_parser.h field-for-field (see
 # README.md); a layout slip here is silent corruption, not a crash.
 #
 # native_parse_hevc_nal62(nal) / native_parse_av1_t35(payload) take the

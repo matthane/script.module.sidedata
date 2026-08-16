@@ -87,4 +87,4 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 
 GPL-2.0-or-later, full text in `LICENSE.txt`.
 
-The bundled aarch64 `libdovi-3.3.1` build is quietvoid's, MIT licensed, with its license text in `LICENSES/dovi_tool.MIT`. `libavutil` (part of FFmpeg, LGPL-2.1-or-later) is CoreELEC's own copy, loaded at runtime, with no FFmpeg code vendored or linked. See `NOTICE.md` for the full third-party notices.
+The bundled aarch64 `libdovi-3.4.0` build is quietvoid's, MIT licensed, with its license text in `LICENSES/dovi_tool.MIT`. `libavutil` (part of FFmpeg, LGPL-2.1-or-later) is CoreELEC's own copy, loaded at runtime, with no FFmpeg code vendored or linked. See `NOTICE.md` for the full third-party notices.

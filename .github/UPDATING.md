@@ -54,11 +54,11 @@ upstream `dolby_vision`/`libdovi` tag.
 7. Rebuild the addon zip.
 
 `tools/build-libdovi.sh` cross-builds the bundled aarch64 `.so`. The same
-`cargo cbuild --release --library-type cdylib` invocation, run from inside
-the checked-out `dolby_vision` crate directory *without* `--target` (so it
-builds for the host triple instead of cross-compiling), produces a host
-build for local test runs. That's what backs
-`~/ce/dvhdr-testdata/libdovi.so.3.3.1.x86_64` and `SIDEDATA_LIBDOVI_PATH` in
+`cargo cbuild --profile release-deploy --library-type cdylib` invocation, run
+from inside the checked-out `dolby_vision` crate directory *without*
+`--target` (so it builds for the host triple instead of cross-compiling),
+produces a host build for local test runs. That's what backs
+`~/ce/dvhdr-testdata/libdovi.so.3.4.0.x86_64` and `SIDEDATA_LIBDOVI_PATH` in
 `tests/test_native.py`. It's never packaged into the addon zip.
 
 # Updating for a new CE ffmpeg major
