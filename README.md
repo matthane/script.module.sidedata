@@ -19,13 +19,17 @@ The module registers as an `xbmc.python.module` extension point, so `import side
 ```python
 import sidedata
 
-result = sidedata.parse_sidedata(xbmc.getInfoLabel('player.process(video.sidedata)'))
-
-if result['rpu'] and result['rpu']['l1']:
-    print(result['rpu']['l1']['max_nits'])
+label = xbmc.getInfoLabel('player.process(video.sidedata)')
+if label != last_label:
+    last_label = label
+    result = sidedata.parse_sidedata(label)
+    if result['rpu'] and result['rpu']['l1']:
+        print(result['rpu']['l1']['max_nits'])
 ```
 
 `parse_sidedata` never raises. Missing or empty input, an unavailable engine, or a payload that fails to parse each degrade only that section to `None` rather than failing the whole call. The result has seven keys (`flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`), each `None` when absent or unparseable except `flags`, which is `[]`. See [FIELDS.md](FIELDS.md) for the field reference, with a changelog per release.
+
+`parse_sidedata` does no caching of its own, so it decodes the JSON and reruns the native RPU and HDR10+ engines on every call. If you poll `player.process(video.sidedata)` on a tick like the example above, keeping `last_label` around and skipping the call when the label has not changed avoids paying that cost on every poll. It is the same guard the bundled service uses on its own poll loop.
 
 ## From a skin
 
