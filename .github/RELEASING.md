@@ -8,6 +8,9 @@ Checklist for publishing a new version of this addon.
    is what Kodi shows in the add-on information dialog.
 2. Update the version notes in `NOTICE.md` and `README.md` if the change
    touches the bundled library or its pinned versions (see UPDATING.md).
+   Update `FIELDS.md` every release: bump the "as of" version in its
+   opening paragraph and add a changelog entry, even when it is only "No
+   field changes."
 3. Run the local test suite: `python3 -m unittest discover tests`. On a
    host without a matching native libdovi build, or without the external
    fixture directory, the golden tests skip; that is expected, see
