@@ -20,8 +20,7 @@
 # functions return None on any failure, whether a missing library, a bad
 # payload, or anything else; that is never raised to the caller. That
 # guarantee is this Python layer only: libdovi itself can panic and abort
-# the process on malformed input, uncatchable from here. See README.md's
-# Known limitations.
+# the process on malformed input, uncatchable from here.
 
 import ctypes
 import ctypes.util

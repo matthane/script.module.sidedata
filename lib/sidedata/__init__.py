@@ -7,8 +7,8 @@ ctypes; this package is glue, dispatch and conversion only. See README.md.
 Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a
 diagnostic overlay reading a malformed frame stays alive. This is a
-Python-layer guarantee only. See README.md's Known limitations for the
-one uncatchable exception, a libdovi panic on malformed RPU bytes.
+Python-layer guarantee only. The one uncatchable exception is a libdovi
+panic on malformed RPU bytes, which aborts the process.
 
 Result shape of parse_sidedata()
 ---------------------------------

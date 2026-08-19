@@ -48,8 +48,9 @@ upstream `dolby_vision`/`libdovi` tag.
    `dovi_tool`'s own JSON dump field-for-field.
 4. Update the version notes in `NOTICE.md` and `README.md`.
 5. Check whether upstream has added FFI panic-catching (`catch_unwind`) to
-   libdovi's C API; if so, remove the panic caveat from README.md's Known
-   limitations.
+   libdovi's C API; if so, remove the panic caveat from the
+   `lib/sidedata/__init__.py` docstring and the header comments in
+   `lib/sidedata/rpu.py` and `lib/sidedata/native.py`.
 6. Bump the addon version in `addon.xml`.
 7. Rebuild the addon zip.
 
