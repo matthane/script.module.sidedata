@@ -45,17 +45,15 @@ tarball of this repo pinned by release tag; the source itself is never
 copied into their tree. GitHub's archive endpoint honours `export-ignore`,
 so what they receive is the same file set as the release zip above.
 
-Nothing is agreed with CoreELEC yet, so the path below is our proposal, not
-a settled fact. Best fit is
-`projects/Amlogic-ce/packages/addons/script/sidedata/package.mk`, with
-`PKG_NAME="sidedata"` and `PKG_SECTION="script.module"`. That project
-directory is where their Amlogic-only addons live, which this is, and the
-addon id is built as `${PKG_SECTION}.${PKG_NAME}`, so those two values are
-what keeps it `script.module.sidedata`. `packages/addons/script/steamlink`
-is the same shape one level up, section `script.program` and name
-`steamlink`. The `script` directory rather than `service` follows the addon
-id, not the extension point order, so the addon presenting as a service in
-Kodi does not move it.
+The package lives at
+`projects/Amlogic-ce/packages/addons/script/sidedata/package.mk`, merged in
+CoreELEC/CoreELEC#410, with `PKG_NAME="sidedata"` and
+`PKG_SECTION="script.module"`. That project directory is where their
+Amlogic-only addons live, which this is, and the addon id is built as
+`${PKG_SECTION}.${PKG_NAME}`, so those two values are what keeps it
+`script.module.sidedata`. The `script` directory rather than `service`
+follows the addon id, not the extension point order, so the addon
+presenting as a service in Kodi does not move it.
 
 `PKG_ADDON_TYPE` only picks a template `addon.xml` for packages that ship
 none. This one ships its own, so the value is inert here and CoreELEC's
@@ -63,13 +61,24 @@ build edits nothing in it but the version.
 
 Publishing a new version takes two steps: tag here, then open a pull
 request against `CoreELEC/CoreELEC` titled `sidedata: bump package to
-X.Y.Z`. Pin `PKG_VERSION` to the new release tag, for example `1.4.2`,
+X.Y.Z`. Every bump is its own fresh pull request; that title and that
+process are what the CoreELEC maintainers asked for on the initial
+submission. Pin `PKG_VERSION` to the new release tag, for example `1.4.2`,
 not the raw commit SHA, and set `PKG_SHA256` to the hash of
 `archive/vX.Y.Z.tar.gz`. `PKG_URL` needs the `v` prefix in front of
 `${PKG_VERSION}` for that archive path to resolve. Pin to the tag rather
 than the commit SHA: hashing a commit-pinned download is redundant once
 the SHA already pins the content, while hashing a tagged download is a
-real integrity check. There is no self-service path and no way to
+real integrity check. Reset `PKG_REV` to `0` whenever `PKG_VERSION`
+moves; it is CoreELEC's rebuild counter and only climbs when their
+packaging changes without a new release here. Before opening the pull
+request, build the addon once in a current CoreELEC checkout:
+
+    PROJECT=Amlogic-ce DEVICE=Amlogic-no ARCH=aarch64 ./scripts/create_addon sidedata
+
+That proves the pinned tarball resolves and hashes clean, and the
+resulting zip under `target/addons/` shows exactly what will ship,
+version rewritten and all. There is no self-service path and no way to
 hotfix, so their review and release cadence sets how fast a fix reaches
 anyone.
 
