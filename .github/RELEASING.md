@@ -10,7 +10,9 @@ Checklist for publishing a new version of this addon.
    touches the bundled library or its pinned versions (see UPDATING.md).
    Update `FIELDS.md` every release: bump the "as of" version in its
    opening paragraph and add a changelog entry, even when it is only "No
-   field changes."
+   field changes." Bump the `<import>` example near the top of
+   `README.md` to the new version too; it is a minimum, so the old
+   number still works, but the example tracks current by convention.
 3. Run the local test suite: `python3 -m unittest discover tests`. On a
    host without a matching native libdovi build, or without the external
    fixture directory, the golden tests skip; that is expected, see
