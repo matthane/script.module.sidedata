@@ -183,6 +183,8 @@ List of trim passes, sorted by `nits`. `[]` when the RPU carries no L8 blocks, o
 | `ui.tonedetail` | float | same derivation as `rpu.l2`'s `ui.tonedetail`, always present since L8 has no disabled sentinel. |
 | `mid_contrast` | int | target mid contrast code. Present only when the block's serialized length is greater than 10. |
 | `clip_trim` | int | clip trim code. Present only when the block's serialized length is greater than 12. |
+| `saturation_vector` | list of 6 int | raw secondary saturation trim vector, 0-255 per field. Present only when the block's serialized length is greater than 18. |
+| `hue_vector` | list of 6 int | raw secondary hue trim vector, 0-255 per field. Present only when the block's serialized length is greater than 24. |
 
 ### rpu.l9
 
@@ -298,6 +300,10 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 | `max_fall` | int | maximum frame average light level, nits. |
 
 ## Changelog
+
+### Unreleased
+
+`rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
 
 ### 1.4.3
 

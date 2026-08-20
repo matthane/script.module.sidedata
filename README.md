@@ -81,7 +81,6 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 
 - Two blocks of the same level can resolve to the same nits value, since distinct raw targets snap to the same preset bucket (dovi_tool's own info output rounds the same way and prints such duplicates too). Both appear in their list. Callers keying by nits get list order, RPU order for ties, not uniqueness.
 - HDR10+ exposes processing window 0 only. `num_windows` is still reported so a caller can detect the multi-window case, which has not been seen in practice.
-- Individual L8 secondary 6-vector saturation and hue trims (block length 19/25) are not exposed by libdovi's own `DoviExtMetadataBlockLevel8`.
 
 ## License
 

@@ -542,6 +542,17 @@ def _apply_vdr(result, vdr):
             trim['mid_contrast'] = b.target_mid_contrast
         if b.length > 12:
             trim['clip_trim'] = b.clip_trim
+        if b.length > 18:
+            trim['saturation_vector'] = [
+                b.saturation_vector_field0, b.saturation_vector_field1,
+                b.saturation_vector_field2, b.saturation_vector_field3,
+                b.saturation_vector_field4, b.saturation_vector_field5,
+            ]
+        if b.length > 24:
+            trim['hue_vector'] = [
+                b.hue_vector_field0, b.hue_vector_field1, b.hue_vector_field2,
+                b.hue_vector_field3, b.hue_vector_field4, b.hue_vector_field5,
+            ]
         l8_list.append(trim)
     l8_list.sort(key=lambda t: t['nits'])
     result['l8'] = l8_list
