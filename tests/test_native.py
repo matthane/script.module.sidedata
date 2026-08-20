@@ -149,6 +149,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
             self.assertEqual(entry['chromaweight'], b['trim_chroma_weight'])
             self.assertEqual(entry['saturation'], b['trim_saturation_gain'])
             self.assertEqual(entry['tonedetail'], b['ms_weight'])
+            self.assertEqual(entry['target_max_pq'], pq)
 
         l5_truth = blocks[5][0]
         self.assertEqual(parsed['l5']['left'], l5_truth['active_area_left_offset'])
@@ -290,6 +291,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
             self.assertEqual(entry['chromaweight'], b['trim_chroma_weight'])
             self.assertEqual(entry['saturation'], b['trim_saturation_gain'])
             self.assertEqual(entry['tonedetail'], b['ms_weight'])
+            self.assertEqual(entry['target_max_pq'], pq)
 
         l5_truth = blocks[5][0]
         self.assertEqual(parsed['l5']['left'], l5_truth['active_area_left_offset'])

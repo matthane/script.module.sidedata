@@ -541,7 +541,9 @@ def _apply_vdr(result, vdr):
     for i in range(dm.level2.len):
         b = dm.level2.list[i].contents
         nits = snap_target_nits(pq_to_nits(b.target_max_pq))
-        l2_list.append(_build_trim(nits, b, b.ms_weight, ms_can_disable=True))
+        trim = _build_trim(nits, b, b.ms_weight, ms_can_disable=True)
+        trim['target_max_pq'] = b.target_max_pq
+        l2_list.append(trim)
     l2_list.sort(key=lambda t: t['nits'])
     result['l2'] = l2_list
 

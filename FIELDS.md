@@ -160,6 +160,7 @@ List of trim passes, sorted by `nits`. `[]` when the RPU carries no L2 blocks.
 | `ui.chromaweight` | float | `chromaweight` rescaled to the -1..1 UI range. |
 | `ui.saturation` | float | `saturation` rescaled to the -1..1 UI range. |
 | `ui.tonedetail` | float or None | `tonedetail` rescaled to the -1..1 UI range. `None` under the same condition as `tonedetail`. |
+| `target_max_pq` | int | raw target maximum PQ code the entry's `nits` was decoded from. |
 
 ### rpu.l3
 
@@ -339,7 +340,7 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 
 `rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
 
-`rpu` gains `affected_dm_metadata_id`, `current_dm_metadata_id`, `scene_refresh_flag` and the new `colorimetry` dict (the VDR DM data's signal description and color transform matrices), plus `source.diagonal`. `rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
+`rpu` gains `affected_dm_metadata_id`, `current_dm_metadata_id`, `scene_refresh_flag` and the new `colorimetry` dict (the VDR DM data's signal description and color transform matrices), plus `source.diagonal`. `rpu.l2` entries gain `target_max_pq`, matching `rpu.l10`. `rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
 
 ### 1.4.3
 
