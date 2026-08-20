@@ -412,8 +412,12 @@ def _build_header(header):
             # reserved_zero_3bits has no defined meaning; both stay unpublished
         },
         'compressed': False,
+        'affected_dm_metadata_id': None,
+        'current_dm_metadata_id': None,
+        'scene_refresh_flag': None,
         'cm_version': None,
         'source': None,
+        'colorimetry': None,
         'l1': None,
         'l2': [],
         'l3': None,
@@ -429,12 +433,42 @@ def _build_header(header):
 def _apply_vdr(result, vdr):
     dm = vdr.dm_data
     result['compressed'] = bool(vdr.compressed)
+    # affected/current_dm_metadata_id and scene_refresh_flag are read before the
+    # compressed branch even splits in dovi_tool's own parser, so they're valid
+    # regardless of vdr.compressed
+    result['affected_dm_metadata_id'] = vdr.affected_dm_metadata_id
+    result['current_dm_metadata_id'] = vdr.current_dm_metadata_id
+    result['scene_refresh_flag'] = vdr.scene_refresh_flag
     if not vdr.compressed:
         result['source'] = {
             'min_pq': vdr.source_min_pq,
             'min_nits': pq_to_nits(vdr.source_min_pq),
             'max_pq': vdr.source_max_pq,
             'max_nits': pq_to_nits(vdr.source_max_pq),
+            'diagonal': vdr.source_diagonal,
+        }
+        result['colorimetry'] = {
+            'ycc_to_rgb_coef': [
+                vdr.ycc_to_rgb_coef0, vdr.ycc_to_rgb_coef1, vdr.ycc_to_rgb_coef2,
+                vdr.ycc_to_rgb_coef3, vdr.ycc_to_rgb_coef4, vdr.ycc_to_rgb_coef5,
+                vdr.ycc_to_rgb_coef6, vdr.ycc_to_rgb_coef7, vdr.ycc_to_rgb_coef8,
+            ],
+            'ycc_to_rgb_offset': [
+                vdr.ycc_to_rgb_offset0, vdr.ycc_to_rgb_offset1, vdr.ycc_to_rgb_offset2,
+            ],
+            'rgb_to_lms_coef': [
+                vdr.rgb_to_lms_coef0, vdr.rgb_to_lms_coef1, vdr.rgb_to_lms_coef2,
+                vdr.rgb_to_lms_coef3, vdr.rgb_to_lms_coef4, vdr.rgb_to_lms_coef5,
+                vdr.rgb_to_lms_coef6, vdr.rgb_to_lms_coef7, vdr.rgb_to_lms_coef8,
+            ],
+            'signal_eotf': vdr.signal_eotf,
+            'signal_eotf_param0': vdr.signal_eotf_param0,
+            'signal_eotf_param1': vdr.signal_eotf_param1,
+            'signal_eotf_param2': vdr.signal_eotf_param2,
+            'signal_bit_depth': vdr.signal_bit_depth,
+            'signal_color_space': vdr.signal_color_space,
+            'signal_chroma_format': vdr.signal_chroma_format,
+            'signal_full_range_flag': vdr.signal_full_range_flag,
         }
 
     has_known_block = bool(dm.level1 or dm.level2.len or dm.level3 or dm.level5 or dm.level6 or

@@ -76,6 +76,29 @@ def _truth_blocks(truth):
     return blocks
 
 
+# shared by both golden fixture classes below: the vdr_dm_data scalar fields
+# and header fields don't vary between the HEVC and AV1 T.35 delivery paths
+def _assert_common_vdr_fields(tc, parsed, vdr):
+    tc.assertEqual(parsed['source']['diagonal'], vdr['source_diagonal'])
+    tc.assertEqual(parsed['affected_dm_metadata_id'], vdr['affected_dm_metadata_id'])
+    tc.assertEqual(parsed['current_dm_metadata_id'], vdr['current_dm_metadata_id'])
+    tc.assertEqual(parsed['scene_refresh_flag'], vdr['scene_refresh_flag'])
+
+    colorimetry = parsed['colorimetry']
+    tc.assertIsNotNone(colorimetry)
+    tc.assertEqual(colorimetry['ycc_to_rgb_coef'], [vdr['ycc_to_rgb_coef%d' % i] for i in range(9)])
+    tc.assertEqual(colorimetry['ycc_to_rgb_offset'], [vdr['ycc_to_rgb_offset%d' % i] for i in range(3)])
+    tc.assertEqual(colorimetry['rgb_to_lms_coef'], [vdr['rgb_to_lms_coef%d' % i] for i in range(9)])
+    tc.assertEqual(colorimetry['signal_eotf'], vdr['signal_eotf'])
+    tc.assertEqual(colorimetry['signal_eotf_param0'], vdr['signal_eotf_param0'])
+    tc.assertEqual(colorimetry['signal_eotf_param1'], vdr['signal_eotf_param1'])
+    tc.assertEqual(colorimetry['signal_eotf_param2'], vdr['signal_eotf_param2'])
+    tc.assertEqual(colorimetry['signal_bit_depth'], vdr['signal_bit_depth'])
+    tc.assertEqual(colorimetry['signal_color_space'], vdr['signal_color_space'])
+    tc.assertEqual(colorimetry['signal_chroma_format'], vdr['signal_chroma_format'])
+    tc.assertEqual(colorimetry['signal_full_range_flag'], vdr['signal_full_range_flag'])
+
+
 def _assert_common_header_fields(tc, parsed, header_truth):
     for key in ('chroma_resampling_explicit_filter_flag', 'coefficient_data_type',
                 'coefficient_log2_denom', 'vdr_rpu_normalized_idc', 'bl_video_full_range_flag',
@@ -105,6 +128,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
         self.assertIsNotNone(parsed['source'])
         self.assertEqual(parsed['source']['min_pq'], vdr['source_min_pq'])
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
+        _assert_common_vdr_fields(self, parsed, vdr)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])
@@ -246,6 +270,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
         self.assertIsNotNone(parsed['source'])
         self.assertEqual(parsed['source']['min_pq'], vdr['source_min_pq'])
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
+        _assert_common_vdr_fields(self, parsed, vdr)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])

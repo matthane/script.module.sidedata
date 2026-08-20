@@ -10,6 +10,7 @@ Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 pri
 - [config](#config)
 - [rpu](#rpu)
   - [rpu.header](#rpuheader)
+  - [rpu.colorimetry](#rpucolorimetry)
   - [rpu.l1](#rpul1)
   - [rpu.l2](#rpul2)
   - [rpu.l3](#rpul3)
@@ -61,12 +62,17 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `profile` | int | guessed Dolby Vision profile (0, 4, 5, 7 or 8), from libdovi's `guessed_profile`. |
 | `header` | dict | see "rpu.header" below. |
 | `compressed` | bool | true when `dv_md_compression` is active on the VDR DM data. False, with `source` left `None`, when there is no VDR DM data at all. |
+| `affected_dm_metadata_id` | int or None | the VDR DM data's `affected_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
+| `current_dm_metadata_id` | int or None | the VDR DM data's `current_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
+| `scene_refresh_flag` | int or None | the VDR DM data's `scene_refresh_flag`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
 | `cm_version` | '2.9' or '4.0' or None | `'4.0'` when the RPU carries an L254 block (dovi_tool's signal for CM v4.0 metadata), `'2.9'` when it carries another known DM metadata block without L254, `None` when neither is present. |
-| `source` | dict or None | source PQ range. `None` when `compressed` is true or there is no VDR DM data. |
+| `source` | dict or None | source mastering display characteristics. `None` when `compressed` is true or there is no VDR DM data. |
 | `source.min_pq` | int | source minimum PQ code, 0-4095. |
 | `source.min_nits` | float | `source.min_pq` converted to nits via the ST 2084 EOTF. |
 | `source.max_pq` | int | source maximum PQ code, 0-4095. |
 | `source.max_nits` | float | `source.max_pq` converted to nits via the ST 2084 EOTF. |
+| `source.diagonal` | int | source mastering display diagonal size, inches. |
+| `colorimetry` | dict or None | signal description and YCC-to-RGB/RGB-to-LMS color transform matrices. `None` under the same condition as `source`. See "rpu.colorimetry" below. |
 | `l1` | dict or None | see "rpu.l1" below. |
 | `l2` | list | see "rpu.l2" below. |
 | `l3` | dict or None | see "rpu.l3" below. |
@@ -103,6 +109,24 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `prev_vdr_rpu_id` | int | id of the previous VDR RPU this one reuses, when `use_prev_vdr_rpu_flag` is true. |
 
 Not published: `rpu_nal_prefix` (deprecated per libdovi's own header, not actually part of the RPU), `reserved_zero_3bits` (no defined meaning) and `vdr_dm_metadata_present_flag` (redundant with `rpu.source`/`rpu.colorimetry` and the rest being `None` when there is no VDR DM data).
+
+### rpu.colorimetry
+
+`DoviVdrDmData`'s signal description and color transform matrices. `None` under the same condition as `rpu.source` (`compressed` is true, or there is no VDR DM data). Raw code values, same approach as `rpu.l8`'s vectors: no second reference implementation to check a derived scaling against.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `ycc_to_rgb_coef` | list of 9 int | raw YCC-to-RGB conversion coefficients, `ycc_to_rgb_coef0`-`ycc_to_rgb_coef8` in order. |
+| `ycc_to_rgb_offset` | list of 3 int | raw YCC-to-RGB conversion offsets, `ycc_to_rgb_offset0`-`ycc_to_rgb_offset2` in order. |
+| `rgb_to_lms_coef` | list of 9 int | raw RGB-to-LMS conversion coefficients, `rgb_to_lms_coef0`-`rgb_to_lms_coef8` in order. |
+| `signal_eotf` | int | raw signal EOTF code. |
+| `signal_eotf_param0` | int | raw signal EOTF parameter 0. |
+| `signal_eotf_param1` | int | raw signal EOTF parameter 1. |
+| `signal_eotf_param2` | int | raw signal EOTF parameter 2. |
+| `signal_bit_depth` | int | signal bit depth. |
+| `signal_color_space` | int | raw signal color space code. |
+| `signal_chroma_format` | int | raw signal chroma format code. |
+| `signal_full_range_flag` | int | raw signal full range code (not a bool in libdovi's own struct). |
 
 ### rpu.l1
 
@@ -315,7 +339,7 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 
 `rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
 
-`rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
+`rpu` gains `affected_dm_metadata_id`, `current_dm_metadata_id`, `scene_refresh_flag` and the new `colorimetry` dict (the VDR DM data's signal description and color transform matrices), plus `source.diagonal`. `rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
 
 ### 1.4.3
 
