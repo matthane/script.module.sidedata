@@ -42,7 +42,7 @@ $INFO[Window(Home).Property(sidedata.rpu.profile)]
 | rule | example |
 |---|---|
 | plain field path | `sidedata.rpu.header.el_type` |
-| list section (`flags`, `hdr10plus.maxscl`, `hdr10plus.bezier_anchors`), space joined | `sidedata.flags` |
+| list value (`flags`, the `hdr10plus` and `rpu.colorimetry` lists, the L8 trim vectors), space joined | `sidedata.flags` |
 | coordinate pair, splits into `.x`/`.y` | `sidedata.mdcv.primaries.red.x` |
 | L2/L8 trim, keyed by nits value. `.l2.nits`/`.l8.nits` enumerate the values present | `sidedata.rpu.l2.600.ui.gain` |
 | L10 target display, keyed by `target_display_index` (two blocks can share a nits value). `.l10.indexes` enumerates them | `sidedata.rpu.l10.0.max_pq` |
@@ -76,6 +76,8 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 
 - Dolby Vision RPU uses [quietvoid's `libdovi`](https://github.com/quietvoid/dovi_tool), bundled for aarch64. The loader tries `SIDEDATA_LIBDOVI_PATH`, then the bundled build, then a platform `libdovi.so` (by soname, then `find_library`). There is no pure-Python fallback, so `result['rpu']` is `None` if none resolve.
 - HDR10+ uses FFmpeg's `libavutil`, borrowed at runtime from CoreELEC's own copy and never bundled. `avutil.py` checks `avutil_version()` on load and refuses an unrecognized major (60 or 61, CoreELEC 22's ffmpeg), since a struct layout mismatch would be silent memory corruption rather than an error. Both bindings mirror a fixed upstream build for that reason. See `.github/UPDATING.md` before moving either pin.
+
+The module publishes metadata, not the composer's pixel-mapping curves. libdovi's `dovi_rpu_get_data_mapping` (the reshaping curves and NLQ data used to actually tone map the base layer against the enhancement layer) is out of scope by design; nothing in this package calls it.
 
 ## Known limitations
 
