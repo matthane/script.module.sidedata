@@ -1,6 +1,6 @@
 # Field reference
 
-This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.4.3. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs.
+This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.5.0. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs.
 
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 primaries table, L11 content-type and whitepoint tables, the L2/L8 trim UI-scale inversion, the HDR10+ raw-code scalings) follow dovi_tool's output conventions and FFmpeg's field semantics. The test suite holds the parsed output to those tools' values on real streams.
 
@@ -375,7 +375,7 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 
 ## Changelog
 
-### Unreleased
+### 1.5.0
 
 `rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
 
