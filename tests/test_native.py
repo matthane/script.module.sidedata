@@ -76,6 +76,13 @@ def _truth_blocks(truth):
     return blocks
 
 
+def _assert_common_header_fields(tc, parsed, header_truth):
+    for key in ('chroma_resampling_explicit_filter_flag', 'coefficient_data_type',
+                'coefficient_log2_denom', 'vdr_rpu_normalized_idc', 'bl_video_full_range_flag',
+                'spatial_resampling_filter_flag', 'use_prev_vdr_rpu_flag', 'prev_vdr_rpu_id'):
+        tc.assertEqual(parsed['header'][key], header_truth[key])
+
+
 class TestGoldenHevcFixtures(unittest.TestCase):
     """Every golden HEVC RPU fixture this addon carries, run through the
     real libdovi bindings (rpu.parse_hevc_nal62, which dispatches straight
@@ -173,6 +180,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
                           header_truth['el_spatial_resampling_filter_flag'])
         self.assertEqual(parsed['header']['disable_residual_flag'],
                           header_truth['disable_residual_flag'])
+        _assert_common_header_fields(self, parsed, header_truth)
 
         if 254 in blocks:
             self.assertEqual(parsed['cm_version'], '4.0')
@@ -283,6 +291,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
                           header_truth['el_spatial_resampling_filter_flag'])
         self.assertEqual(parsed['header']['disable_residual_flag'],
                           header_truth['disable_residual_flag'])
+        _assert_common_header_fields(self, parsed, header_truth)
 
         return parsed
 

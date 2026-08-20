@@ -399,6 +399,17 @@ def _build_header(header):
             'el_spatial_resampling_filter_flag': bool(header.el_spatial_resampling_filter_flag),
             'disable_residual_flag': bool(header.disable_residual_flag),
             'el_type': el_type,
+            'chroma_resampling_explicit_filter_flag':
+                bool(header.chroma_resampling_explicit_filter_flag),
+            'coefficient_data_type': header.coefficient_data_type,
+            'coefficient_log2_denom': header.coefficient_log2_denom,
+            'vdr_rpu_normalized_idc': header.vdr_rpu_normalized_idc,
+            'bl_video_full_range_flag': bool(header.bl_video_full_range_flag),
+            'spatial_resampling_filter_flag': bool(header.spatial_resampling_filter_flag),
+            'use_prev_vdr_rpu_flag': bool(header.use_prev_vdr_rpu_flag),
+            'prev_vdr_rpu_id': header.prev_vdr_rpu_id,
+            # rpu_nal_prefix is deprecated per the header itself and
+            # reserved_zero_3bits has no defined meaning; both stay unpublished
         },
         'compressed': False,
         'cm_version': None,
@@ -570,6 +581,9 @@ def _resolve(lib, rpu):
             return None
         try:
             result = _build_header(header_ptr.contents)
+            # vdr_ptr is null exactly when header.vdr_dm_metadata_present_flag is
+            # false, so that flag is redundant with every result key this leaves
+            # at its _build_header default below
             vdr_ptr = lib.dovi_rpu_get_vdr_dm_data(rpu)
             if vdr_ptr:
                 try:

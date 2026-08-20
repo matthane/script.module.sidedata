@@ -93,6 +93,16 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `el_spatial_resampling_filter_flag` | bool | enhancement layer spatial resampling filter flag. |
 | `disable_residual_flag` | bool | true disables the enhancement layer residual. |
 | `el_type` | 'MEL' or 'FEL' or None | read straight off libdovi's own `DoviRpuDataHeader.el_type`. `None` when there is no enhancement layer, e.g. profile 8. |
+| `chroma_resampling_explicit_filter_flag` | bool | chroma resampling explicit filter flag. |
+| `coefficient_data_type` | int | coefficient data type id. |
+| `coefficient_log2_denom` | int | coefficient log2 denominator. |
+| `vdr_rpu_normalized_idc` | int | VDR RPU normalized id. |
+| `bl_video_full_range_flag` | bool | base layer video full range flag. |
+| `spatial_resampling_filter_flag` | bool | spatial resampling filter flag. |
+| `use_prev_vdr_rpu_flag` | bool | true when this RPU reuses the previous one's VDR RPU data. |
+| `prev_vdr_rpu_id` | int | id of the previous VDR RPU this one reuses, when `use_prev_vdr_rpu_flag` is true. |
+
+Not published: `rpu_nal_prefix` (deprecated per libdovi's own header, not actually part of the RPU), `reserved_zero_3bits` (no defined meaning) and `vdr_dm_metadata_present_flag` (redundant with `rpu.source`/`rpu.colorimetry` and the rest being `None` when there is no VDR DM data).
 
 ### rpu.l1
 
@@ -304,6 +314,8 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 ### Unreleased
 
 `rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
+
+`rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
 
 ### 1.4.3
 
