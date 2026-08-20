@@ -14,12 +14,15 @@ Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 pri
   - [rpu.l1](#rpul1)
   - [rpu.l2](#rpul2)
   - [rpu.l3](#rpul3)
+  - [rpu.l4](#rpul4)
   - [rpu.l5](#rpul5)
   - [rpu.l6](#rpul6)
   - [rpu.l8](#rpul8)
   - [rpu.l9](#rpul9)
   - [rpu.l10](#rpul10)
   - [rpu.l11](#rpul11)
+  - [rpu.l254](#rpul254)
+  - [rpu.l255](#rpul255)
 - [hdr10plus](#hdr10plus)
 - [mdcv](#mdcv)
 - [cll](#cll)
@@ -76,12 +79,15 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `l1` | dict or None | see "rpu.l1" below. |
 | `l2` | list | see "rpu.l2" below. |
 | `l3` | dict or None | see "rpu.l3" below. |
+| `l4` | dict or None | see "rpu.l4" below. |
 | `l5` | dict or None | see "rpu.l5" below. |
 | `l6` | dict or None | see "rpu.l6" below. |
 | `l8` | list | see "rpu.l8" below. |
 | `l9` | dict or None | see "rpu.l9" below. |
 | `l10` | list | see "rpu.l10" below. |
 | `l11` | dict or None | see "rpu.l11" below. |
+| `l254` | dict or None | see "rpu.l254" below. |
+| `l255` | dict or None | see "rpu.l255" below. |
 
 ### rpu.header
 
@@ -171,6 +177,15 @@ Present when the RPU carries an L3 (PQ offset) metadata block, else `None`.
 | `min_pq_offset` | int | minimum PQ offset code. |
 | `max_pq_offset` | int | maximum PQ offset code. |
 | `avg_pq_offset` | int | average PQ offset code. |
+
+### rpu.l4
+
+Present when the RPU carries an L4 (temporal stability) metadata block, else `None`. Raw code values, no second reference implementation.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `anchor_pq` | int | raw anchor PQ code. |
+| `anchor_power` | int | raw anchor power code. |
 
 ### rpu.l5
 
@@ -280,6 +295,8 @@ Present when the RPU carries an L11 (content type/whitepoint) metadata block, el
 | `whitepoint_name` | str | `'6504K (D65)'` at code 0, else `'{whitepoint_kelvin}K'`. |
 | `reference_mode` | bool | reference mode flag. |
 
+Not published: `reserved_byte2` and `reserved_byte3` (no defined meaning).
+
 Content type name table, used by `content_type_name`. Any other code renders as its own decimal string.
 
 | Code | Name |
@@ -289,6 +306,28 @@ Content type name table, used by `content_type_name`. Any other code renders as 
 | 2 | `Game` |
 | 3 | `Sport` |
 | 4 | `User Generated Content` |
+
+### rpu.l254
+
+Present when the RPU carries an L254 (CM v4.0) metadata block, else `None`. This is the same block `cm_version` checks for. Raw code values, no second reference implementation.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `dm_mode` | int | raw display management mode code. |
+| `dm_version_index` | int | raw display management version index. |
+
+### rpu.l255
+
+Present when the RPU carries an L255 (debug run mode) metadata block, else `None`. A diagnostic block for display management tooling, not seen in encoded content. Raw code values, no second reference implementation.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `dm_run_mode` | int | raw run mode code. |
+| `dm_run_version` | int | raw run version code. |
+| `dm_debug0` | int | raw debug field 0. |
+| `dm_debug1` | int | raw debug field 1. |
+| `dm_debug2` | int | raw debug field 2. |
+| `dm_debug3` | int | raw debug field 3. |
 
 ## hdr10plus
 
@@ -340,7 +379,7 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 
 `rpu.l8` entries gain `saturation_vector` and `hue_vector`, the L8 secondary 6-vector trims, when the block's serialized length carries them (19/25).
 
-`rpu` gains `affected_dm_metadata_id`, `current_dm_metadata_id`, `scene_refresh_flag` and the new `colorimetry` dict (the VDR DM data's signal description and color transform matrices), plus `source.diagonal`. `rpu.l2` entries gain `target_max_pq`, matching `rpu.l10`. `rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`.
+`rpu` gains `affected_dm_metadata_id`, `current_dm_metadata_id`, `scene_refresh_flag` and the new `colorimetry` dict (the VDR DM data's signal description and color transform matrices), plus `source.diagonal`. `rpu.l2` entries gain `target_max_pq`, matching `rpu.l10`. `rpu.header` gains `chroma_resampling_explicit_filter_flag`, `coefficient_data_type`, `coefficient_log2_denom`, `vdr_rpu_normalized_idc`, `bl_video_full_range_flag`, `spatial_resampling_filter_flag`, `use_prev_vdr_rpu_flag` and `prev_vdr_rpu_id`. New `rpu.l4`, `rpu.l254` and `rpu.l255` dicts.
 
 ### 1.4.3
 

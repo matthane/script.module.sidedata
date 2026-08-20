@@ -104,6 +104,13 @@ class _DoviExtMetadataBlockLevel3(ctypes.Structure):
     ]
 
 
+class _DoviExtMetadataBlockLevel4(ctypes.Structure):
+    _fields_ = [
+        ('anchor_pq', ctypes.c_uint16),
+        ('anchor_power', ctypes.c_uint16),
+    ]
+
+
 class _DoviExtMetadataBlockLevel5(ctypes.Structure):
     _fields_ = [
         ('active_area_left_offset', ctypes.c_uint16),
@@ -213,16 +220,24 @@ class _DoviExtMetadataBlockLevel254(ctypes.Structure):
     ]
 
 
-# level4 (anamorphic) and level255 (debug run modes) are declared as opaque
-# pointers: this addon never reads them, and a void* is layout-identical to
-# a typed pointer for struct purposes
+class _DoviExtMetadataBlockLevel255(ctypes.Structure):
+    _fields_ = [
+        ('dm_run_mode', ctypes.c_uint8),
+        ('dm_run_version', ctypes.c_uint8),
+        ('dm_debug0', ctypes.c_uint8),
+        ('dm_debug1', ctypes.c_uint8),
+        ('dm_debug2', ctypes.c_uint8),
+        ('dm_debug3', ctypes.c_uint8),
+    ]
+
+
 class _DoviDmData(ctypes.Structure):
     _fields_ = [
         ('num_ext_blocks', ctypes.c_uint64),
         ('level1', ctypes.POINTER(_DoviExtMetadataBlockLevel1)),
         ('level2', _DoviLevel2BlockList),
         ('level3', ctypes.POINTER(_DoviExtMetadataBlockLevel3)),
-        ('level4', ctypes.c_void_p),
+        ('level4', ctypes.POINTER(_DoviExtMetadataBlockLevel4)),
         ('level5', ctypes.POINTER(_DoviExtMetadataBlockLevel5)),
         ('level6', ctypes.POINTER(_DoviExtMetadataBlockLevel6)),
         ('level8', _DoviLevel8BlockList),
@@ -230,7 +245,7 @@ class _DoviDmData(ctypes.Structure):
         ('level10', _DoviLevel10BlockList),
         ('level11', ctypes.POINTER(_DoviExtMetadataBlockLevel11)),
         ('level254', ctypes.POINTER(_DoviExtMetadataBlockLevel254)),
-        ('level255', ctypes.c_void_p),
+        ('level255', ctypes.POINTER(_DoviExtMetadataBlockLevel255)),
     ]
 
 
@@ -421,12 +436,15 @@ def _build_header(header):
         'l1': None,
         'l2': [],
         'l3': None,
+        'l4': None,
         'l5': None,
         'l6': None,
         'l8': [],
         'l9': None,
         'l10': [],
         'l11': None,
+        'l254': None,
+        'l255': None,
     }
 
 
@@ -492,6 +510,13 @@ def _apply_vdr(result, vdr):
             'avg_pq_offset': b.avg_pq_offset,
         }
 
+    if dm.level4:
+        b = dm.level4.contents
+        result['l4'] = {
+            'anchor_pq': b.anchor_pq,
+            'anchor_power': b.anchor_power,
+        }
+
     if dm.level5:
         b = dm.level5.contents
         result['l5'] = {
@@ -535,6 +560,24 @@ def _apply_vdr(result, vdr):
             'whitepoint_kelvin': whitepoint_kelvin(b.whitepoint),
             'whitepoint_name': whitepoint_name(b.whitepoint),
             'reference_mode': bool(b.reference_mode_flag),
+        }
+
+    if dm.level254:
+        b = dm.level254.contents
+        result['l254'] = {
+            'dm_mode': b.dm_mode,
+            'dm_version_index': b.dm_version_index,
+        }
+
+    if dm.level255:
+        b = dm.level255.contents
+        result['l255'] = {
+            'dm_run_mode': b.dm_run_mode,
+            'dm_run_version': b.dm_run_version,
+            'dm_debug0': b.dm_debug0,
+            'dm_debug1': b.dm_debug1,
+            'dm_debug2': b.dm_debug2,
+            'dm_debug3': b.dm_debug3,
         }
 
     l2_list = []

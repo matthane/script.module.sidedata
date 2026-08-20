@@ -106,6 +106,15 @@ def _assert_common_header_fields(tc, parsed, header_truth):
         tc.assertEqual(parsed['header'][key], header_truth[key])
 
 
+def _assert_l4_block(tc, parsed, blocks):
+    if 4 in blocks:
+        l4_truth = blocks[4][0]
+        tc.assertEqual(parsed['l4']['anchor_pq'], l4_truth['anchor_pq'])
+        tc.assertEqual(parsed['l4']['anchor_power'], l4_truth['anchor_power'])
+    else:
+        tc.assertIsNone(parsed['l4'])
+
+
 class TestGoldenHevcFixtures(unittest.TestCase):
     """Every golden HEVC RPU fixture this addon carries, run through the
     real libdovi bindings (rpu.parse_hevc_nal62, which dispatches straight
@@ -129,6 +138,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
         self.assertEqual(parsed['source']['min_pq'], vdr['source_min_pq'])
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
         _assert_common_vdr_fields(self, parsed, vdr)
+        _assert_l4_block(self, parsed, blocks)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])
@@ -209,6 +219,11 @@ class TestGoldenHevcFixtures(unittest.TestCase):
 
         if 254 in blocks:
             self.assertEqual(parsed['cm_version'], '4.0')
+            l254_truth = blocks[254][0]
+            self.assertEqual(parsed['l254']['dm_mode'], l254_truth['dm_mode'])
+            self.assertEqual(parsed['l254']['dm_version_index'], l254_truth['dm_version_index'])
+        else:
+            self.assertIsNone(parsed['l254'])
 
         return parsed
 
@@ -272,6 +287,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
         self.assertEqual(parsed['source']['min_pq'], vdr['source_min_pq'])
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
         _assert_common_vdr_fields(self, parsed, vdr)
+        _assert_l4_block(self, parsed, blocks)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])
@@ -312,6 +328,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
         self.assertEqual(parsed['l10'], [])
         self.assertIsNone(parsed['l11'])
         self.assertEqual(parsed['cm_version'], '2.9')
+        self.assertIsNone(parsed['l254'])
 
         header_truth = truth['header']
         self.assertEqual(parsed['header']['el_spatial_resampling_filter_flag'],
@@ -331,6 +348,28 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
     @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
     def test_frame700(self):
         self._check_av1_frame('dv10_av1_frame700')
+
+
+class TestLevel255Binding(unittest.TestCase):
+    """No fixture carries a Level255 (debug run mode) block - it's a
+    diagnostic block real encoders don't emit - so this exercises the ctypes
+    struct and _apply_vdr directly instead of through libdovi.
+    """
+
+    def test_level255_fields_published(self):
+        level255 = native._DoviExtMetadataBlockLevel255(
+            dm_run_mode=1, dm_run_version=2,
+            dm_debug0=3, dm_debug1=4, dm_debug2=5, dm_debug3=6)
+        dm_data = native._DoviDmData(num_ext_blocks=1, level255=native.ctypes.pointer(level255))
+        vdr = native._DoviVdrDmData(compressed=False, dm_data=dm_data)
+
+        result = {'l255': None}
+        native._apply_vdr(result, vdr)
+
+        self.assertEqual(result['l255'], {
+            'dm_run_mode': 1, 'dm_run_version': 2,
+            'dm_debug0': 3, 'dm_debug1': 4, 'dm_debug2': 5, 'dm_debug3': 6,
+        })
 
 
 class TestNeverRaise(unittest.TestCase):
