@@ -25,7 +25,6 @@
 # anything else.
 
 import ctypes
-import ctypes.util
 import os
 
 from .convert import hdr10plus_fraction_bright_percent, hdr10plus_knee_point, hdr10plus_rgb_nits
@@ -115,23 +114,28 @@ _lib = None
 _load_attempted = False
 
 
+def _candidates():
+    # yielded lazily: find_library shells out to ldconfig and friends and
+    # ctypes.util drags in subprocess on import, so neither runs unless the
+    # pinned sonames have failed
+    override = os.environ.get('SIDEDATA_LIBAVUTIL_PATH')
+    if override:
+        yield override
+    yield 'libavutil.so.61'
+    yield 'libavutil.so.60'
+    import ctypes.util
+    found = ctypes.util.find_library('avutil')
+    if found:
+        yield found
+
+
 def _load():
     global _lib, _load_attempted
     if _load_attempted:
         return _lib
     _load_attempted = True
 
-    candidates = []
-    override = os.environ.get('SIDEDATA_LIBAVUTIL_PATH')
-    if override:
-        candidates.append(override)
-    candidates.append('libavutil.so.61')
-    candidates.append('libavutil.so.60')
-    found = ctypes.util.find_library('avutil')
-    if found:
-        candidates.append(found)
-
-    for name in candidates:
+    for name in _candidates():
         try:
             lib = ctypes.CDLL(name)
             _configure(lib)

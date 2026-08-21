@@ -23,7 +23,6 @@
 # the process on malformed input, uncatchable from here.
 
 import ctypes
-import ctypes.util
 import os
 import platform
 
@@ -447,6 +446,9 @@ def _candidates():
     if bundled:
         yield bundled
     yield 'libdovi.so'
+    # ctypes.util drags in subprocess and friends, so it is imported only
+    # when this fallback actually runs
+    import ctypes.util
     found = ctypes.util.find_library('dovi')
     if found:
         yield found
