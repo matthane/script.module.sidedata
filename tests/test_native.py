@@ -83,6 +83,9 @@ def _assert_common_vdr_fields(tc, parsed, vdr):
     tc.assertEqual(parsed['affected_dm_metadata_id'], vdr['affected_dm_metadata_id'])
     tc.assertEqual(parsed['current_dm_metadata_id'], vdr['current_dm_metadata_id'])
     tc.assertEqual(parsed['scene_refresh_flag'], vdr['scene_refresh_flag'])
+    truth_num_ext_blocks = sum(vdr[group]['num_ext_blocks']
+                                for group in ('cmv29_metadata', 'cmv40_metadata') if group in vdr)
+    tc.assertEqual(parsed['num_ext_blocks'], truth_num_ext_blocks)
 
     colorimetry = parsed['colorimetry']
     tc.assertIsNotNone(colorimetry)
@@ -102,7 +105,9 @@ def _assert_common_vdr_fields(tc, parsed, vdr):
 def _assert_common_header_fields(tc, parsed, header_truth):
     for key in ('chroma_resampling_explicit_filter_flag', 'coefficient_data_type',
                 'coefficient_log2_denom', 'vdr_rpu_normalized_idc', 'bl_video_full_range_flag',
-                'spatial_resampling_filter_flag', 'use_prev_vdr_rpu_flag', 'prev_vdr_rpu_id'):
+                'spatial_resampling_filter_flag', 'use_prev_vdr_rpu_flag', 'prev_vdr_rpu_id',
+                'vdr_seq_info_present_flag', 'vdr_dm_metadata_present_flag', 'rpu_nal_prefix',
+                'reserved_zero_3bits'):
         tc.assertEqual(parsed['header'][key], header_truth[key])
 
 
@@ -190,6 +195,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
             self.assertEqual(l8_entry['chromaweight'], l8_truth['trim_chroma_weight'])
             self.assertEqual(l8_entry['saturation'], l8_truth['trim_saturation_gain'])
             self.assertEqual(l8_entry['tonedetail'], l8_truth['ms_weight'])
+            self.assertEqual(l8_entry['length'], l8_truth['length'])
             if l8_truth['target_display_index'] == 1:
                 self.assertEqual(l8_entry['nits'], 100)
 
@@ -197,6 +203,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
             l9_truth = blocks[9][0]
             self.assertEqual(parsed['l9']['index'], l9_truth['source_primary_index'])
             self.assertEqual(parsed['l9']['has_coords'], l9_truth['length'] >= 17)
+            self.assertEqual(parsed['l9']['length'], l9_truth['length'])
         else:
             self.assertIsNone(parsed['l9'])
 
@@ -207,6 +214,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
                 entry = l10_by_index[b['target_display_index']]
                 self.assertEqual(entry['target_max_pq'], b['target_max_pq'])
                 self.assertEqual(entry['primary_index'], b['target_primary_index'])
+                self.assertEqual(entry['length'], b['length'])
         else:
             self.assertEqual(parsed['l10'], [])
 
@@ -370,6 +378,26 @@ class TestLevel255Binding(unittest.TestCase):
             'dm_run_mode': 1, 'dm_run_version': 2,
             'dm_debug0': 3, 'dm_debug1': 4, 'dm_debug2': 5, 'dm_debug3': 6,
         })
+
+
+class TestLevel11ReservedBytes(unittest.TestCase):
+    """No fixture carries a Level11 (content type/whitepoint) block, so
+    reserved_byte2/reserved_byte3 are exercised directly through the ctypes
+    struct and _apply_vdr, same approach as TestLevel255Binding.
+    """
+
+    def test_level11_reserved_bytes_published(self):
+        level11 = native._DoviExtMetadataBlockLevel11(
+            content_type=1, whitepoint=0, reference_mode_flag=True,
+            reserved_byte2=7, reserved_byte3=9)
+        dm_data = native._DoviDmData(num_ext_blocks=1, level11=native.ctypes.pointer(level11))
+        vdr = native._DoviVdrDmData(compressed=False, dm_data=dm_data)
+
+        result = {'l11': None}
+        native._apply_vdr(result, vdr)
+
+        self.assertEqual(result['l11']['reserved_byte2'], 7)
+        self.assertEqual(result['l11']['reserved_byte3'], 9)
 
 
 class TestNeverRaise(unittest.TestCase):

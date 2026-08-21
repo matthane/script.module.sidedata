@@ -68,6 +68,7 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `affected_dm_metadata_id` | int or None | the VDR DM data's `affected_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
 | `current_dm_metadata_id` | int or None | the VDR DM data's `current_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
 | `scene_refresh_flag` | int or None | the VDR DM data's `scene_refresh_flag`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
+| `num_ext_blocks` | int or None | the VDR DM data's own declared extension metadata block count (`DoviDmData.num_ext_blocks`), across both CM v2.9 and CM v4.0 block groups. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
 | `cm_version` | '2.9' or '4.0' or None | `'4.0'` when the RPU carries an L254 block (dovi_tool's signal for CM v4.0 metadata), `'2.9'` when it carries another known DM metadata block without L254, `None` when neither is present. |
 | `source` | dict or None | source mastering display characteristics. `None` when `compressed` is true or there is no VDR DM data. |
 | `source.min_pq` | int | source minimum PQ code, 0-4095. |
@@ -113,8 +114,10 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `spatial_resampling_filter_flag` | bool | spatial resampling filter flag. |
 | `use_prev_vdr_rpu_flag` | bool | true when this RPU reuses the previous one's VDR RPU data. |
 | `prev_vdr_rpu_id` | int | id of the previous VDR RPU this one reuses, when `use_prev_vdr_rpu_flag` is true. |
-
-Not published: `rpu_nal_prefix` (deprecated per libdovi's own header, not actually part of the RPU), `reserved_zero_3bits` (no defined meaning) and `vdr_dm_metadata_present_flag` (redundant with `rpu.source`/`rpu.colorimetry` and the rest being `None` when there is no VDR DM data).
+| `vdr_seq_info_present_flag` | bool | true when `bl_bit_depth`, `el_bit_depth` and `vdr_bit_depth` above are present. False leaves those three `None`. |
+| `vdr_dm_metadata_present_flag` | bool | true when there is VDR DM data, i.e. `rpu.num_ext_blocks` is populated. `rpu.source` and `rpu.colorimetry` also come from VDR DM data but stay `None` when the RPU is `compressed`, even with this flag true. False leaves all three at their `None` default. |
+| `rpu_nal_prefix` | int | raw `rpu_nal_prefix`. Deprecated per libdovi's own header comment, not actually part of the RPU bitstream. |
+| `reserved_zero_3bits` | int | reserved field, no defined meaning. |
 
 ### rpu.colorimetry
 
@@ -235,6 +238,7 @@ List of trim passes, sorted by `nits`. `[]` when the RPU carries no L8 blocks, o
 | `clip_trim` | int | clip trim code. Present only when the block's serialized length is greater than 12. |
 | `saturation_vector` | list of 6 int | raw secondary saturation trim vector, 0-255 per field. Present only when the block's serialized length is greater than 18. |
 | `hue_vector` | list of 6 int | raw secondary hue trim vector, 0-255 per field. Present only when the block's serialized length is greater than 24. |
+| `length` | int | the block's raw serialized length, the same value the fields above are gated on. |
 
 ### rpu.l9
 
@@ -249,6 +253,7 @@ Present when the RPU carries an L9 (source colour primaries) metadata block, els
 | `coords.green` | tuple of int | raw 16 bit CIE x, y for green. Present only when `has_coords`. |
 | `coords.blue` | tuple of int | raw 16 bit CIE x, y for blue. Present only when `has_coords`. |
 | `coords.white` | tuple of int | raw 16 bit CIE x, y for white. Present only when `has_coords`. |
+| `length` | int | the block's raw serialized length, the same value `has_coords` is gated on. |
 
 ### rpu.l10
 
@@ -267,6 +272,7 @@ List of target display definitions, sorted by (`nits`, `primary_index`). `[]` wh
 | `coords.green` | tuple of int | raw 16 bit CIE x, y for green. Present only when `has_coords`. |
 | `coords.blue` | tuple of int | raw 16 bit CIE x, y for blue. Present only when `has_coords`. |
 | `coords.white` | tuple of int | raw 16 bit CIE x, y for white. Present only when `has_coords`. |
+| `length` | int | the block's raw serialized length, the same value `has_coords` is gated on. |
 
 Primaries name table, used by `rpu.l9`'s `name` and `rpu.l10`'s `primary_name`. Index 255, or any index paired with `has_coords`, renders as `custom`. Any other unnamed index renders as its own decimal string.
 
@@ -294,8 +300,8 @@ Present when the RPU carries an L11 (content type/whitepoint) metadata block, el
 | `whitepoint_kelvin` | int | `6504 + 375 * whitepoint`. |
 | `whitepoint_name` | str | `'6504K (D65)'` at code 0, else `'{whitepoint_kelvin}K'`. |
 | `reference_mode` | bool | reference mode flag. |
-
-Not published: `reserved_byte2` and `reserved_byte3` (no defined meaning).
+| `reserved_byte2` | int | reserved field, no defined meaning. |
+| `reserved_byte3` | int | reserved field, no defined meaning. |
 
 Content type name table, used by `content_type_name`. Any other code renders as its own decimal string.
 
@@ -374,6 +380,10 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 | `max_fall` | int | maximum frame average light level, nits. |
 
 ## Changelog
+
+### Unreleased
+
+`rpu.header` gains `vdr_seq_info_present_flag`, `vdr_dm_metadata_present_flag`, `rpu_nal_prefix` and `reserved_zero_3bits`. `rpu` gains `num_ext_blocks`. `rpu.l11` gains `reserved_byte2` and `reserved_byte3`. `rpu.l8`, `rpu.l9` and `rpu.l10` entries gain `length`, the block's raw serialized length. Every field libdovi decodes is now published.
 
 ### 1.5.0
 

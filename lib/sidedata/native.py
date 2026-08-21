@@ -423,13 +423,17 @@ def _build_header(header):
             'spatial_resampling_filter_flag': bool(header.spatial_resampling_filter_flag),
             'use_prev_vdr_rpu_flag': bool(header.use_prev_vdr_rpu_flag),
             'prev_vdr_rpu_id': header.prev_vdr_rpu_id,
-            # rpu_nal_prefix is deprecated per the header itself and
-            # reserved_zero_3bits has no defined meaning; both stay unpublished
+            'vdr_seq_info_present_flag': has_seq_info,
+            'vdr_dm_metadata_present_flag': bool(header.vdr_dm_metadata_present_flag),
+            # deprecated per libdovi's own header comment, not actually part of the RPU bitstream
+            'rpu_nal_prefix': header.rpu_nal_prefix,
+            'reserved_zero_3bits': header.reserved_zero_3bits,
         },
         'compressed': False,
         'affected_dm_metadata_id': None,
         'current_dm_metadata_id': None,
         'scene_refresh_flag': None,
+        'num_ext_blocks': None,
         'cm_version': None,
         'source': None,
         'colorimetry': None,
@@ -457,6 +461,7 @@ def _apply_vdr(result, vdr):
     result['affected_dm_metadata_id'] = vdr.affected_dm_metadata_id
     result['current_dm_metadata_id'] = vdr.current_dm_metadata_id
     result['scene_refresh_flag'] = vdr.scene_refresh_flag
+    result['num_ext_blocks'] = dm.num_ext_blocks
     if not vdr.compressed:
         result['source'] = {
             'min_pq': vdr.source_min_pq,
@@ -542,6 +547,7 @@ def _apply_vdr(result, vdr):
             'index': b.source_primary_index,
             'has_coords': has_coords,
             'name': primaries_name(b.source_primary_index, has_coords),
+            'length': b.length,
         }
         if has_coords:
             l9['coords'] = _primaries_coords(
@@ -560,6 +566,8 @@ def _apply_vdr(result, vdr):
             'whitepoint_kelvin': whitepoint_kelvin(b.whitepoint),
             'whitepoint_name': whitepoint_name(b.whitepoint),
             'reference_mode': bool(b.reference_mode_flag),
+            'reserved_byte2': b.reserved_byte2,
+            'reserved_byte3': b.reserved_byte3,
         }
 
     if dm.level254:
@@ -608,6 +616,7 @@ def _apply_vdr(result, vdr):
             'primary_index': b.target_primary_index,
             'primary_name': primaries_name(b.target_primary_index, has_coords),
             'has_coords': has_coords,
+            'length': b.length,
         }
         if has_coords:
             entry['coords'] = _primaries_coords(
@@ -628,6 +637,7 @@ def _apply_vdr(result, vdr):
         if nits == 0:
             continue
         trim = _build_trim(nits, b, b.ms_weight, ms_can_disable=False, target_display_index=idx)
+        trim['length'] = b.length
         if b.length > 10:
             trim['mid_contrast'] = b.target_mid_contrast
         if b.length > 12:
@@ -661,8 +671,8 @@ def _resolve(lib, rpu):
         try:
             result = _build_header(header_ptr.contents)
             # vdr_ptr is null exactly when header.vdr_dm_metadata_present_flag is
-            # false, so that flag is redundant with every result key this leaves
-            # at its _build_header default below
+            # false, so every result key _apply_vdr would set stays at its
+            # _build_header default below
             vdr_ptr = lib.dovi_rpu_get_vdr_dm_data(rpu)
             if vdr_ptr:
                 try:
