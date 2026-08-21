@@ -4,7 +4,7 @@ player.process(video.sidedata) infolabel (CoreELEC 22, Amlogic only). The
 RPU and HDR10+ payloads are parsed by real engines (libdovi, libavutil) via
 ctypes; this package is glue, dispatch and conversion only. See README.md.
 
-Public entry point: parse_sidedata(json_str) -> dict. Missing or unparseable
+Public entry point: parse_sidedata(json_str, include_mapping=True) -> dict. Missing or unparseable
 input never raises; every section degrades to None/[] instead, so a
 diagnostic overlay reading a malformed frame stays alive. This is a
 Python-layer guarantee only. The one uncatchable exception is a libdovi
@@ -16,7 +16,7 @@ Result shape of parse_sidedata()
   'flags': [str, ...],       # tokens from the flags key, e.g. ['converted']; [] when absent
   'structure': str or None,  # 'st-dl' or 'dt-dl' for dual-layer DV; None for single-layer
   'config': {...} or None,   # dvcC/dvvC configuration record
-  'rpu': {...} or None,      # Dolby Vision RPU: profile, header, source, l1-l11
+  'rpu': {...} or None,      # Dolby Vision RPU: profile, header, data_mapping, source, num_ext_blocks, l1-l11
   'hdr10plus': {...} or None,  # ST 2094-40 dynamic metadata, window 0 only
   'mdcv': {...} or None,      # mastering display colour volume
   'cll': {...} or None,       # content light level
@@ -57,7 +57,7 @@ def _decode(value):
     return base64.b64decode(value)
 
 
-def parse_sidedata(json_str):
+def parse_sidedata(json_str, include_mapping=True):
     result = _empty_result()
 
     if not json_str:
@@ -93,9 +93,9 @@ def parse_sidedata(json_str):
         except Exception:
             raw = None
         if raw is not None:
-            result['rpu'] = _rpu.parse_hevc_nal62(raw)
+            result['rpu'] = _rpu.parse_hevc_nal62(raw, include_mapping)
             if result['rpu'] is None:
-                result['rpu'] = _rpu.parse_av1_t35(raw)
+                result['rpu'] = _rpu.parse_av1_t35(raw, include_mapping)
 
     hdr10plus_b64 = data.get('hdr10plus')
     if hdr10plus_b64:

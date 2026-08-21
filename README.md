@@ -77,7 +77,7 @@ No bitstream parsing happens in Python. Both engines are real libraries called t
 - Dolby Vision RPU uses [quietvoid's `libdovi`](https://github.com/quietvoid/dovi_tool), bundled for aarch64. The loader tries `SIDEDATA_LIBDOVI_PATH`, then the bundled build, then a platform `libdovi.so` (by soname, then `find_library`). There is no pure-Python fallback, so `result['rpu']` is `None` if none resolve.
 - HDR10+ uses FFmpeg's `libavutil`, borrowed at runtime from CoreELEC's own copy and never bundled. `avutil.py` checks `avutil_version()` on load and refuses an unrecognized major (60 or 61, CoreELEC 22's ffmpeg), since a struct layout mismatch would be silent memory corruption rather than an error. Both bindings mirror a fixed upstream build for that reason. See `.github/UPDATING.md` before moving either pin.
 
-The module publishes metadata, not the composer's pixel-mapping curves. libdovi's `dovi_rpu_get_data_mapping` (the reshaping curves and NLQ data used to actually tone map the base layer against the enhancement layer) is out of scope by design; nothing in this package calls it.
+libdovi's `dovi_rpu_get_data_mapping` (the composer/reshaping curves and NLQ data, what most players call the composer metadata) is published as `rpu.data_mapping`. See [RPU-DATA-MAPPING.md](RPU-DATA-MAPPING.md) for its field reference. Callers who don't need it pass `include_mapping=False` to skip the extra native call. The bundled service does exactly that, so `sidedata.rpu.data_mapping.*` never appears as a Home window property.
 
 ## Known limitations
 

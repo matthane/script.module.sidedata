@@ -11,9 +11,9 @@
 from . import native as _native
 
 
-def parse_hevc_nal62(nal):
-    return _native.native_parse_hevc_nal62(nal)
+def parse_hevc_nal62(nal, include_mapping=True):
+    return _native.native_parse_hevc_nal62(nal, include_mapping)
 
 
-def parse_av1_t35(payload):
-    return _native.native_parse_av1_t35(payload)
+def parse_av1_t35(payload, include_mapping=True):
+    return _native.native_parse_av1_t35(payload, include_mapping)

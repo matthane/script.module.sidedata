@@ -10,6 +10,7 @@ Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 pri
 - [config](#config)
 - [rpu](#rpu)
   - [rpu.header](#rpuheader)
+  - [rpu.data_mapping](#rpudata_mapping)
   - [rpu.colorimetry](#rpucolorimetry)
   - [rpu.l1](#rpul1)
   - [rpu.l2](#rpul2)
@@ -64,6 +65,7 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | --- | --- | --- |
 | `profile` | int | guessed Dolby Vision profile (0, 4, 5, 7 or 8), from libdovi's `guessed_profile`. |
 | `header` | dict | see "rpu.header" below. |
+| `data_mapping` | dict or None | the composer/reshaping metadata: per-component reshaping curves and NLQ dequantization data. See "rpu.data_mapping" below. `None` when `include_mapping=False` was passed to `parse_sidedata()`/`parse_hevc_nal62()`/`parse_av1_t35()`. The bundled window property service always passes `include_mapping=False`. |
 | `compressed` | bool | true when `dv_md_compression` is active on the VDR DM data. False, with `source` left `None`, when there is no VDR DM data at all. |
 | `affected_dm_metadata_id` | int or None | the VDR DM data's `affected_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
 | `current_dm_metadata_id` | int or None | the VDR DM data's `current_dm_metadata_id`. `None` when there is no VDR DM data. Valid regardless of `compressed`. |
@@ -118,6 +120,12 @@ Direct keys of the `rpu` dict. `header` and the `l1`-`l11` keys are broken out i
 | `vdr_dm_metadata_present_flag` | bool | true when there is VDR DM data, i.e. `rpu.num_ext_blocks` is populated. `rpu.source` and `rpu.colorimetry` also come from VDR DM data but stay `None` when the RPU is `compressed`, even with this flag true. False leaves all three at their `None` default. |
 | `rpu_nal_prefix` | int | raw `rpu_nal_prefix`. Deprecated per libdovi's own header comment, not actually part of the RPU bitstream. |
 | `reserved_zero_3bits` | int | reserved field, no defined meaning. |
+
+### rpu.data_mapping
+
+The composer/reshaping half of the RPU: per-component reshaping curves plus NLQ dequantization data for dual-layer profiles. `None` when `include_mapping=False` was passed at the call site, or when libdovi returns no mapping data for this RPU; a dict otherwise. See [RPU-DATA-MAPPING.md](RPU-DATA-MAPPING.md) for the full field-by-field reference, including how to combine its integer/fractional coefficient pairs.
+
+`include_mapping` defaults to `True`: `parse_sidedata()`, `parse_hevc_nal62()` and `parse_av1_t35()` all publish the full RPU unless a caller opts out. The bundled window property service passes `include_mapping=False`, so `sidedata.rpu.data_mapping.*` never appears as a Home window property.
 
 ### rpu.colorimetry
 
@@ -384,6 +392,8 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 ### Unreleased
 
 `rpu.header` gains `vdr_seq_info_present_flag`, `vdr_dm_metadata_present_flag`, `rpu_nal_prefix` and `reserved_zero_3bits`. `rpu` gains `num_ext_blocks`. `rpu.l11` gains `reserved_byte2` and `reserved_byte3`. `rpu.l8`, `rpu.l9` and `rpu.l10` entries gain `length`, the block's raw serialized length. Every field libdovi decodes is now published.
+
+`rpu` gains `data_mapping`, the composer/reshaping curves and NLQ data (`dovi_rpu_get_data_mapping`). `parse_sidedata()`, `parse_hevc_nal62()` and `parse_av1_t35()` gain an `include_mapping` keyword, default `True`, to opt out. The bundled service passes `False` so it never publishes the subtree as window properties. See [RPU-DATA-MAPPING.md](RPU-DATA-MAPPING.md).
 
 ### 1.5.0
 

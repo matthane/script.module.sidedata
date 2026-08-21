@@ -120,6 +120,70 @@ def _assert_l4_block(tc, parsed, blocks):
         tc.assertIsNone(parsed['l4'])
 
 
+# dovi_tool's own JSON dump tags mapping_idc as the string "Polynomial" or
+# "MMR" rather than the raw 0/1 code native.py publishes
+def _assert_reshaping_curve(tc, curve, curve_truth):
+    tc.assertEqual(curve['num_pivots'], curve_truth['num_pivots_minus2'] + 2)
+    tc.assertEqual(curve['pivots'], curve_truth['pivots'])
+    if curve_truth['mapping_idc'] == 'Polynomial':
+        tc.assertEqual(curve['mapping_idc'], 0)
+        tc.assertIsNone(curve['mmr'])
+        poly = curve['polynomial']
+        tc.assertIsNotNone(poly)
+        tc.assertEqual(poly['poly_order'], [v + 1 for v in curve_truth['poly_order_minus1']])
+        tc.assertEqual(poly['linear_interp_flag'], curve_truth['linear_interp_flag'])
+        tc.assertEqual(poly['poly_coef_int'], curve_truth['poly_coef_int'])
+        tc.assertEqual(poly['poly_coef'], curve_truth['poly_coef'])
+    else:
+        tc.assertEqual(curve['mapping_idc'], 1)
+        tc.assertIsNone(curve['polynomial'])
+        mmr = curve['mmr']
+        tc.assertIsNotNone(mmr)
+        tc.assertEqual(mmr['mmr_order'], [v + 1 for v in curve_truth['mmr_order_minus1']])
+        tc.assertEqual(mmr['mmr_constant_int'], curve_truth['mmr_constant_int'])
+        tc.assertEqual(mmr['mmr_constant'], curve_truth['mmr_constant'])
+        tc.assertEqual(mmr['mmr_coef_int'], curve_truth['mmr_coef_int'])
+        tc.assertEqual(mmr['mmr_coef'], curve_truth['mmr_coef'])
+
+
+# dovi_tool's own JSON dump tags nlq_method_idc as the string "LinearDeadzone"
+# rather than the raw code native.py publishes; this is the only method any
+# fixture in this repo carries
+_NLQ_METHOD_IDC_BY_NAME = {'LinearDeadzone': 0}
+
+
+def _assert_data_mapping(tc, parsed, truth):
+    dm = parsed['data_mapping']
+    dm_truth = truth['rpu_data_mapping']
+    tc.assertIsNotNone(dm)
+    tc.assertEqual(dm['vdr_rpu_id'], dm_truth['vdr_rpu_id'])
+    tc.assertEqual(dm['mapping_color_space'], dm_truth['mapping_color_space'])
+    tc.assertEqual(dm['mapping_chroma_format_idc'], dm_truth['mapping_chroma_format_idc'])
+    tc.assertEqual(dm['num_x_partitions'], dm_truth['num_x_partitions_minus1'] + 1)
+    tc.assertEqual(dm['num_y_partitions'], dm_truth['num_y_partitions_minus1'] + 1)
+    tc.assertEqual(len(dm['curves']), 3)
+    for curve, curve_truth in zip(dm['curves'], dm_truth['curves']):
+        _assert_reshaping_curve(tc, curve, curve_truth)
+
+    if 'nlq' in dm_truth:
+        tc.assertIsNotNone(dm['nlq'])
+        nlq_truth = dm_truth['nlq']
+        for key in ('nlq_offset', 'vdr_in_max_int', 'vdr_in_max',
+                    'linear_deadzone_slope_int', 'linear_deadzone_slope',
+                    'linear_deadzone_threshold_int', 'linear_deadzone_threshold'):
+            tc.assertEqual(dm['nlq'][key], nlq_truth[key])
+        tc.assertEqual(dm['nlq_num_pivots'], dm_truth['nlq_num_pivots_minus2'] + 2)
+        tc.assertEqual(dm['nlq_pred_pivot_value'], dm_truth['nlq_pred_pivot_value'])
+        if 'nlq_method_idc' in dm_truth:
+            tc.assertEqual(dm['nlq_method_idc'],
+                            _NLQ_METHOD_IDC_BY_NAME[dm_truth['nlq_method_idc']])
+    else:
+        tc.assertIsNone(dm['nlq'])
+        tc.assertIsNone(dm['nlq_method_idc'])
+        tc.assertIsNone(dm['nlq_num_pivots'])
+        tc.assertIsNone(dm['nlq_pred_pivot_value'])
+
+
 class TestGoldenHevcFixtures(unittest.TestCase):
     """Every golden HEVC RPU fixture this addon carries, run through the
     real libdovi bindings (rpu.parse_hevc_nal62, which dispatches straight
@@ -144,6 +208,7 @@ class TestGoldenHevcFixtures(unittest.TestCase):
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
         _assert_common_vdr_fields(self, parsed, vdr)
         _assert_l4_block(self, parsed, blocks)
+        _assert_data_mapping(self, parsed, truth)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])
@@ -296,6 +361,7 @@ class TestGoldenAv1Fixtures(unittest.TestCase):
         self.assertEqual(parsed['source']['max_pq'], vdr['source_max_pq'])
         _assert_common_vdr_fields(self, parsed, vdr)
         _assert_l4_block(self, parsed, blocks)
+        _assert_data_mapping(self, parsed, truth)
 
         l1_truth = blocks[1][0]
         self.assertIsNotNone(parsed['l1'])
@@ -398,6 +464,229 @@ class TestLevel11ReservedBytes(unittest.TestCase):
 
         self.assertEqual(result['l11']['reserved_byte2'], 7)
         self.assertEqual(result['l11']['reserved_byte3'], 9)
+
+
+def _u16_data(values):
+    arr = (native.ctypes.c_uint16 * len(values))(*values)
+    return native._DoviU16Data(data=arr, len=len(values))
+
+
+def _u64_data(values):
+    arr = (native.ctypes.c_uint64 * len(values))(*values)
+    return native._DoviU64Data(data=arr, len=len(values))
+
+
+def _i64_data(values):
+    arr = (native.ctypes.c_int64 * len(values))(*values)
+    return native._DoviI64Data(data=arr, len=len(values))
+
+
+def _u8_data(values):
+    arr = (native.ctypes.c_uint8 * len(values))(*values)
+    return native._DoviData(data=arr, len=len(values))
+
+
+def _i64_data_2d(rows):
+    items = [_i64_data(row) for row in rows]
+    ptrs = (native.ctypes.POINTER(native._DoviI64Data) * len(items))(
+        *[native.ctypes.pointer(i) for i in items])
+    return native._DoviI64Data2D(list=ptrs, len=len(items))
+
+
+def _u64_data_2d(rows):
+    items = [_u64_data(row) for row in rows]
+    ptrs = (native.ctypes.POINTER(native._DoviU64Data) * len(items))(
+        *[native.ctypes.pointer(i) for i in items])
+    return native._DoviU64Data2D(list=ptrs, len=len(items))
+
+
+def _i64_data_3d(blocks):
+    items = [_i64_data_2d(block) for block in blocks]
+    ptrs = (native.ctypes.POINTER(native._DoviI64Data2D) * len(items))(
+        *[native.ctypes.pointer(i) for i in items])
+    return native._DoviI64Data3D(list=ptrs, len=len(items))
+
+
+def _u64_data_3d(blocks):
+    items = [_u64_data_2d(block) for block in blocks]
+    ptrs = (native.ctypes.POINTER(native._DoviU64Data2D) * len(items))(
+        *[native.ctypes.pointer(i) for i in items])
+    return native._DoviU64Data3D(list=ptrs, len=len(items))
+
+
+def _polynomial_curve(pivots, poly_order_minus1, linear_interp_flag, poly_coef_int, poly_coef):
+    poly = native._DoviPolynomialCurve(
+        poly_order_minus1=_u64_data(poly_order_minus1),
+        linear_interp_flag=_u8_data(linear_interp_flag),
+        poly_coef_int=_i64_data_2d(poly_coef_int),
+        poly_coef=_u64_data_2d(poly_coef))
+    return native._DoviReshapingCurve(
+        num_pivots_minus2=len(pivots) - 2, pivots=_u16_data(pivots),
+        mapping_idc=0, polynomial=native.ctypes.pointer(poly), mmr=None)
+
+
+def _mmr_curve(pivots, mmr_order_minus1, mmr_constant_int, mmr_constant, mmr_coef_int, mmr_coef):
+    mmr = native._DoviMMRCurve(
+        mmr_order_minus1=_u8_data(mmr_order_minus1),
+        mmr_constant_int=_i64_data(mmr_constant_int),
+        mmr_constant=_u64_data(mmr_constant),
+        mmr_coef_int=_i64_data_3d(mmr_coef_int),
+        mmr_coef=_u64_data_3d(mmr_coef))
+    return native._DoviReshapingCurve(
+        num_pivots_minus2=len(pivots) - 2, pivots=_u16_data(pivots),
+        mapping_idc=1, polynomial=None, mmr=native.ctypes.pointer(mmr))
+
+
+def _trivial_curve():
+    return _polynomial_curve([0, 1023], [0], [0], [[0, 1]], [[0, 0]])
+
+
+def _build_mapping_struct(curves, nlq_method_idc=-1, nlq_num_pivots_minus2=-1,
+                           nlq_pred_pivot_value=(), nlq=None,
+                           num_x_partitions_minus1=0, num_y_partitions_minus1=0):
+    curves_arr = (native._DoviReshapingCurve * 3)(*curves)
+    return native._DoviRpuDataMapping(
+        vdr_rpu_id=0, mapping_color_space=0, mapping_chroma_format_idc=0,
+        num_x_partitions_minus1=num_x_partitions_minus1,
+        num_y_partitions_minus1=num_y_partitions_minus1,
+        curves=curves_arr,
+        nlq_method_idc=nlq_method_idc, nlq_num_pivots_minus2=nlq_num_pivots_minus2,
+        nlq_pred_pivot_value=_u16_data(list(nlq_pred_pivot_value)),
+        nlq=nlq)
+
+
+class TestDataMappingBinding(unittest.TestCase):
+    """No fixture carries an MMR-mapped chroma curve or a multi-segment
+    polynomial curve - every fixture this addon carries ships trivial
+    single-segment passthrough curves - so those shapes, and the NLQ struct
+    (which the dv7fel_frame0/dv7mel_frame0 golden fixtures do cover, single
+    segment only), are exercised directly through the ctypes structs and
+    _build_data_mapping, same approach as TestLevel255Binding.
+    """
+
+    def test_multi_segment_polynomial_curve_published(self):
+        curve = _polynomial_curve(
+            pivots=[0, 500, 1023],
+            poly_order_minus1=[0, 1],
+            linear_interp_flag=[0, 1],
+            poly_coef_int=[[5, 6], [7, 8, 9]],
+            poly_coef=[[1, 2], [3, 4, 5]])
+        mapping = _build_mapping_struct([curve, _trivial_curve(), _trivial_curve()])
+
+        result = native._build_data_mapping(mapping)
+
+        y = result['curves'][0]
+        self.assertEqual(y['num_pivots'], 3)
+        self.assertEqual(y['pivots'], [0, 500, 1023])
+        self.assertIsNone(y['mmr'])
+        poly = y['polynomial']
+        self.assertEqual(poly['poly_order'], [1, 2])
+        self.assertEqual(poly['linear_interp_flag'], [False, True])
+        self.assertEqual(poly['poly_coef_int'], [[5, 6], [7, 8, 9]])
+        self.assertEqual(poly['poly_coef'], [[1, 2], [3, 4, 5]])
+
+    def test_mmr_curve_published(self):
+        curve = _mmr_curve(
+            pivots=[0, 1023],
+            mmr_order_minus1=[2],
+            mmr_constant_int=[10],
+            mmr_constant=[20],
+            mmr_coef_int=[[[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14],
+                           [15, 16, 17, 18, 19, 20, 21]]],
+            mmr_coef=[[[1] * 7, [2] * 7, [3] * 7]])
+        mapping = _build_mapping_struct([_trivial_curve(), curve, _trivial_curve()])
+
+        result = native._build_data_mapping(mapping)
+
+        cb = result['curves'][1]
+        self.assertEqual(cb['mapping_idc'], 1)
+        self.assertIsNone(cb['polynomial'])
+        mmr = cb['mmr']
+        self.assertEqual(mmr['mmr_order'], [3])
+        self.assertEqual(mmr['mmr_constant_int'], [10])
+        self.assertEqual(mmr['mmr_constant'], [20])
+        self.assertEqual(mmr['mmr_coef_int'],
+                          [[[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14],
+                            [15, 16, 17, 18, 19, 20, 21]]])
+        self.assertEqual(mmr['mmr_coef'], [[[1] * 7, [2] * 7, [3] * 7]])
+
+    def test_nlq_struct_published(self):
+        nlq = native._DoviRpuDataNlq(
+            nlq_offset=(native.ctypes.c_uint16 * 3)(1, 2, 3),
+            vdr_in_max_int=(native.ctypes.c_uint64 * 3)(4, 5, 6),
+            vdr_in_max=(native.ctypes.c_uint64 * 3)(7, 8, 9),
+            linear_deadzone_slope_int=(native.ctypes.c_uint64 * 3)(10, 11, 12),
+            linear_deadzone_slope=(native.ctypes.c_uint64 * 3)(13, 14, 15),
+            linear_deadzone_threshold_int=(native.ctypes.c_uint64 * 3)(16, 17, 18),
+            linear_deadzone_threshold=(native.ctypes.c_uint64 * 3)(19, 20, 21))
+        mapping = _build_mapping_struct(
+            [_trivial_curve(), _trivial_curve(), _trivial_curve()],
+            nlq_method_idc=0, nlq_num_pivots_minus2=0, nlq_pred_pivot_value=[0, 1023],
+            nlq=native.ctypes.pointer(nlq))
+
+        result = native._build_data_mapping(mapping)
+
+        self.assertEqual(result['nlq_method_idc'], 0)
+        self.assertEqual(result['nlq_num_pivots'], 2)
+        self.assertEqual(result['nlq_pred_pivot_value'], [0, 1023])
+        self.assertEqual(result['nlq'], {
+            'nlq_offset': [1, 2, 3],
+            'vdr_in_max_int': [4, 5, 6],
+            'vdr_in_max': [7, 8, 9],
+            'linear_deadzone_slope_int': [10, 11, 12],
+            'linear_deadzone_slope': [13, 14, 15],
+            'linear_deadzone_threshold_int': [16, 17, 18],
+            'linear_deadzone_threshold': [19, 20, 21],
+        })
+
+    def test_nlq_sentinels_absent(self):
+        mapping = _build_mapping_struct(
+            [_trivial_curve(), _trivial_curve(), _trivial_curve()],
+            nlq_method_idc=-1, nlq_num_pivots_minus2=-1, nlq_pred_pivot_value=[], nlq=None)
+
+        result = native._build_data_mapping(mapping)
+
+        self.assertIsNone(result['nlq_method_idc'])
+        self.assertIsNone(result['nlq_num_pivots'])
+        self.assertIsNone(result['nlq_pred_pivot_value'])
+        self.assertIsNone(result['nlq'])
+
+    def test_num_x_y_partitions_converted(self):
+        mapping = _build_mapping_struct(
+            [_trivial_curve(), _trivial_curve(), _trivial_curve()],
+            num_x_partitions_minus1=3, num_y_partitions_minus1=1)
+
+        result = native._build_data_mapping(mapping)
+
+        self.assertEqual(result['num_x_partitions'], 4)
+        self.assertEqual(result['num_y_partitions'], 2)
+
+
+class TestIncludeMappingOptOut(unittest.TestCase):
+    """The bundled service passes include_mapping=False so it never pays
+    for dovi_rpu_get_data_mapping; this exercises that opt-out through the
+    real bindings against a golden fixture, confirming the rest of the RPU
+    still parses.
+    """
+
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
+    @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
+    def test_hevc_include_mapping_false_omits_subtree(self):
+        raw, _truth = _load_frame('signs_frame0')
+        nal62 = b'\x7c\x01' + raw
+        parsed = rpu.parse_hevc_nal62(nal62, include_mapping=False)
+        self.assertIsNotNone(parsed)
+        self.assertIsNone(parsed['data_mapping'])
+        self.assertIsNotNone(parsed['l1'])
+
+    @unittest.skipUnless(_FIXTURES_AVAILABLE, _FIXTURES_SKIP_REASON)
+    @unittest.skipUnless(_NATIVE_AVAILABLE, _SKIP_REASON)
+    def test_av1_include_mapping_false_omits_subtree(self):
+        payload, _truth = _load_av1_t35_frame('dv10_av1_frame0')
+        parsed = rpu.parse_av1_t35(payload, include_mapping=False)
+        self.assertIsNotNone(parsed)
+        self.assertIsNone(parsed['data_mapping'])
+        self.assertIsNotNone(parsed['l1'])
 
 
 class TestNeverRaise(unittest.TestCase):

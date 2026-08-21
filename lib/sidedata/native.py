@@ -69,6 +69,118 @@ class _DoviRpuDataHeader(ctypes.Structure):
     ]
 
 
+class _DoviData(ctypes.Structure):
+    _fields_ = [
+        ('data', ctypes.POINTER(ctypes.c_uint8)),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviU16Data(ctypes.Structure):
+    _fields_ = [
+        ('data', ctypes.POINTER(ctypes.c_uint16)),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviU64Data(ctypes.Structure):
+    _fields_ = [
+        ('data', ctypes.POINTER(ctypes.c_uint64)),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviI64Data(ctypes.Structure):
+    _fields_ = [
+        ('data', ctypes.POINTER(ctypes.c_int64)),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviI64Data2D(ctypes.Structure):
+    _fields_ = [
+        ('list', ctypes.POINTER(ctypes.POINTER(_DoviI64Data))),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviU64Data2D(ctypes.Structure):
+    _fields_ = [
+        ('list', ctypes.POINTER(ctypes.POINTER(_DoviU64Data))),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviPolynomialCurve(ctypes.Structure):
+    _fields_ = [
+        ('poly_order_minus1', _DoviU64Data),
+        ('linear_interp_flag', _DoviData),
+        ('poly_coef_int', _DoviI64Data2D),
+        ('poly_coef', _DoviU64Data2D),
+    ]
+
+
+class _DoviI64Data3D(ctypes.Structure):
+    _fields_ = [
+        ('list', ctypes.POINTER(ctypes.POINTER(_DoviI64Data2D))),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviU64Data3D(ctypes.Structure):
+    _fields_ = [
+        ('list', ctypes.POINTER(ctypes.POINTER(_DoviU64Data2D))),
+        ('len', ctypes.c_size_t),
+    ]
+
+
+class _DoviMMRCurve(ctypes.Structure):
+    _fields_ = [
+        ('mmr_order_minus1', _DoviData),
+        ('mmr_constant_int', _DoviI64Data),
+        ('mmr_constant', _DoviU64Data),
+        ('mmr_coef_int', _DoviI64Data3D),
+        ('mmr_coef', _DoviU64Data3D),
+    ]
+
+
+class _DoviReshapingCurve(ctypes.Structure):
+    _fields_ = [
+        ('num_pivots_minus2', ctypes.c_uint64),
+        ('pivots', _DoviU16Data),
+        ('mapping_idc', ctypes.c_uint8),
+        ('polynomial', ctypes.POINTER(_DoviPolynomialCurve)),
+        ('mmr', ctypes.POINTER(_DoviMMRCurve)),
+    ]
+
+
+class _DoviRpuDataNlq(ctypes.Structure):
+    _fields_ = [
+        ('nlq_offset', ctypes.c_uint16 * 3),
+        ('vdr_in_max_int', ctypes.c_uint64 * 3),
+        ('vdr_in_max', ctypes.c_uint64 * 3),
+        ('linear_deadzone_slope_int', ctypes.c_uint64 * 3),
+        ('linear_deadzone_slope', ctypes.c_uint64 * 3),
+        ('linear_deadzone_threshold_int', ctypes.c_uint64 * 3),
+        ('linear_deadzone_threshold', ctypes.c_uint64 * 3),
+    ]
+
+
+class _DoviRpuDataMapping(ctypes.Structure):
+    _fields_ = [
+        ('vdr_rpu_id', ctypes.c_uint64),
+        ('mapping_color_space', ctypes.c_uint64),
+        ('mapping_chroma_format_idc', ctypes.c_uint64),
+        ('num_x_partitions_minus1', ctypes.c_uint64),
+        ('num_y_partitions_minus1', ctypes.c_uint64),
+        ('curves', _DoviReshapingCurve * 3),
+        ('nlq_method_idc', ctypes.c_int32),
+        ('nlq_num_pivots_minus2', ctypes.c_int32),
+        ('nlq_pred_pivot_value', _DoviU16Data),
+        ('nlq', ctypes.POINTER(_DoviRpuDataNlq)),
+    ]
+
+
 class _DoviExtMetadataBlockLevel1(ctypes.Structure):
     _fields_ = [
         ('min_pq', ctypes.c_uint16),
@@ -304,6 +416,10 @@ def _configure(lib):
     lib.dovi_rpu_get_header.restype = ctypes.POINTER(_DoviRpuDataHeader)
     lib.dovi_rpu_free_header.argtypes = [ctypes.POINTER(_DoviRpuDataHeader)]
     lib.dovi_rpu_free_header.restype = None
+    lib.dovi_rpu_get_data_mapping.argtypes = [ctypes.c_void_p]
+    lib.dovi_rpu_get_data_mapping.restype = ctypes.POINTER(_DoviRpuDataMapping)
+    lib.dovi_rpu_free_data_mapping.argtypes = [ctypes.POINTER(_DoviRpuDataMapping)]
+    lib.dovi_rpu_free_data_mapping.restype = None
     lib.dovi_rpu_get_vdr_dm_data.argtypes = [ctypes.c_void_p]
     lib.dovi_rpu_get_vdr_dm_data.restype = ctypes.POINTER(_DoviVdrDmData)
     lib.dovi_rpu_free_vdr_dm_data.argtypes = [ctypes.POINTER(_DoviVdrDmData)]
@@ -429,6 +545,7 @@ def _build_header(header):
             'rpu_nal_prefix': header.rpu_nal_prefix,
             'reserved_zero_3bits': header.reserved_zero_3bits,
         },
+        'data_mapping': None,
         'compressed': False,
         'affected_dm_metadata_id': None,
         'current_dm_metadata_id': None,
@@ -658,7 +775,79 @@ def _apply_vdr(result, vdr):
     result['l8'] = l8_list
 
 
-def _resolve(lib, rpu):
+def _data_list(d):
+    return [d.data[i] for i in range(d.len)]
+
+
+def _data_2d_list(d):
+    return [_data_list(d.list[i].contents) for i in range(d.len)]
+
+
+def _data_3d_list(d):
+    return [_data_2d_list(d.list[i].contents) for i in range(d.len)]
+
+
+def _build_curve(curve):
+    result = {
+        'num_pivots': curve.num_pivots_minus2 + 2,
+        'pivots': _data_list(curve.pivots),
+        'mapping_idc': curve.mapping_idc,
+        'polynomial': None,
+        'mmr': None,
+    }
+    if curve.polynomial:
+        p = curve.polynomial.contents
+        result['polynomial'] = {
+            'poly_order': [v + 1 for v in _data_list(p.poly_order_minus1)],
+            'linear_interp_flag': [bool(v) for v in _data_list(p.linear_interp_flag)],
+            'poly_coef_int': _data_2d_list(p.poly_coef_int),
+            'poly_coef': _data_2d_list(p.poly_coef),
+        }
+    if curve.mmr:
+        m = curve.mmr.contents
+        result['mmr'] = {
+            'mmr_order': [v + 1 for v in _data_list(m.mmr_order_minus1)],
+            'mmr_constant_int': _data_list(m.mmr_constant_int),
+            'mmr_constant': _data_list(m.mmr_constant),
+            'mmr_coef_int': _data_3d_list(m.mmr_coef_int),
+            'mmr_coef': _data_3d_list(m.mmr_coef),
+        }
+    return result
+
+
+def _build_data_mapping(mapping):
+    result = {
+        'vdr_rpu_id': mapping.vdr_rpu_id,
+        'mapping_color_space': mapping.mapping_color_space,
+        'mapping_chroma_format_idc': mapping.mapping_chroma_format_idc,
+        'num_x_partitions': mapping.num_x_partitions_minus1 + 1,
+        'num_y_partitions': mapping.num_y_partitions_minus1 + 1,
+        'curves': [_build_curve(mapping.curves[i]) for i in range(3)],
+        'nlq_method_idc': None if mapping.nlq_method_idc == -1 else mapping.nlq_method_idc,
+        'nlq_num_pivots': None,
+        'nlq_pred_pivot_value': None,
+        'nlq': None,
+    }
+    if mapping.nlq_num_pivots_minus2 != -1:
+        result['nlq_num_pivots'] = mapping.nlq_num_pivots_minus2 + 2
+    pivot_values = _data_list(mapping.nlq_pred_pivot_value)
+    if pivot_values:
+        result['nlq_pred_pivot_value'] = pivot_values
+    if mapping.nlq:
+        n = mapping.nlq.contents
+        result['nlq'] = {
+            'nlq_offset': list(n.nlq_offset),
+            'vdr_in_max_int': list(n.vdr_in_max_int),
+            'vdr_in_max': list(n.vdr_in_max),
+            'linear_deadzone_slope_int': list(n.linear_deadzone_slope_int),
+            'linear_deadzone_slope': list(n.linear_deadzone_slope),
+            'linear_deadzone_threshold_int': list(n.linear_deadzone_threshold_int),
+            'linear_deadzone_threshold': list(n.linear_deadzone_threshold),
+        }
+    return result
+
+
+def _resolve(lib, rpu, include_mapping):
     global _last_error
     if not rpu:
         return None
@@ -670,6 +859,13 @@ def _resolve(lib, rpu):
             return None
         try:
             result = _build_header(header_ptr.contents)
+            if include_mapping:
+                mapping_ptr = lib.dovi_rpu_get_data_mapping(rpu)
+                if mapping_ptr:
+                    try:
+                        result['data_mapping'] = _build_data_mapping(mapping_ptr.contents)
+                    finally:
+                        lib.dovi_rpu_free_data_mapping(mapping_ptr)
             # vdr_ptr is null exactly when header.vdr_dm_metadata_present_flag is
             # false, so every result key _apply_vdr would set stays at its
             # _build_header default below
@@ -687,25 +883,25 @@ def _resolve(lib, rpu):
         lib.dovi_rpu_free(rpu)
 
 
-def native_parse_hevc_nal62(nal):
+def native_parse_hevc_nal62(nal, include_mapping=True):
     lib = _load()
     if lib is None:
         return None
     try:
         data = bytes(nal)
         rpu = lib.dovi_parse_unspec62_nalu(data, len(data))
-        return _resolve(lib, rpu)
+        return _resolve(lib, rpu, include_mapping)
     except Exception:
         return None
 
 
-def native_parse_av1_t35(payload):
+def native_parse_av1_t35(payload, include_mapping=True):
     lib = _load()
     if lib is None:
         return None
     try:
         data = bytes(payload)
         rpu = lib.dovi_parse_itu_t35_dovi_metadata_obu(data, len(data))
-        return _resolve(lib, rpu)
+        return _resolve(lib, rpu, include_mapping)
     except Exception:
         return None

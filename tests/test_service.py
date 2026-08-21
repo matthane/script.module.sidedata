@@ -599,6 +599,18 @@ class TestTick(unittest.TestCase):
         self.assertEqual(self.window.properties['sidedata.structure'], 'st-dl')
         self.assertEqual(self.window.properties['sidedata.flags'], 'converted')
 
+    def test_parse_sidedata_called_with_include_mapping_false(self):
+        # the service never publishes rpu.data_mapping as a window property,
+        # so it must opt out of the cost of building it in the first place
+        self.player.playing = True
+        _fake_xbmc.info_label = '{"structure": "st-dl"}'
+
+        with mock.patch.object(service.sidedata, 'parse_sidedata',
+                                wraps=service.sidedata.parse_sidedata) as mock_parse:
+            service._tick(self.player, self.window, self.state)
+
+        mock_parse.assert_called_once_with('{"structure": "st-dl"}', include_mapping=False)
+
     def test_malformed_label_never_raises_and_clears(self):
         self.state['published'] = {'sidedata.structure': 'st-dl'}
         self.window.properties = {'sidedata.structure': 'st-dl'}

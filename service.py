@@ -253,7 +253,7 @@ def _tick(player, window, state):
                 _clear(window, state['published'])
             return
 
-        flat = flatten_sidedata(sidedata.parse_sidedata(label))
+        flat = flatten_sidedata(sidedata.parse_sidedata(label, include_mapping=False))
         _publish(window, state['published'], flat)
     except Exception:
         try:
