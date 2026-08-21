@@ -9,10 +9,10 @@ A CoreELEC addon that parses the raw Dolby Vision and HDR sidedata CoreELEC's Am
 Declare the dependency in your own `addon.xml`:
 
 ```xml
-<import addon="script.module.sidedata" version="1.5.0"/>
+<import addon="script.module.sidedata" version="1.6.0"/>
 ```
 
-That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends a fourth component, so a module reporting `1.5.0.0` still satisfies an import of `1.5.0`. Import the three-component version.
+That version is a minimum per Kodi's `<import>` semantics. CoreELEC's build appends a fourth component, so a module reporting `1.6.0.0` still satisfies an import of `1.6.0`. Import the three-component version.
 
 The module registers as an `xbmc.python.module` extension point, so `import sidedata` works once declared:
 
@@ -27,13 +27,13 @@ if label != last_label:
         print(result['rpu']['l1']['max_nits'])
 ```
 
-`parse_sidedata` never raises. Missing or empty input, an unavailable engine, or a payload that fails to parse each degrade only that section to `None` rather than failing the whole call. The result has seven keys (`flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`), each `None` when absent or unparseable except `flags`, which is `[]`. See [FIELDS.md](FIELDS.md) for the field reference, with a changelog per release.
+`parse_sidedata` never raises. Missing or empty input, an unavailable engine, or a payload that fails to parse each degrade only that section to `None` rather than failing the whole call. The result has seven keys (`flags`, `structure`, `config`, `rpu`, `hdr10plus`, `mdcv`, `cll`), each `None` when absent or unparseable except `flags`, which is `[]`. See [FIELDS.md](FIELDS.md) for the field reference, with a changelog per release. The one opt-out is `include_mapping=False`, which skips the composer `rpu.data_mapping` subtree ([RPU-DATA-MAPPING.md](RPU-DATA-MAPPING.md)) and leaves it `None`.
 
 `parse_sidedata` does no caching of its own, so it decodes the JSON and reruns the native RPU and HDR10+ engines on every call. If you poll `player.process(video.sidedata)` on a tick like the example above, keeping `last_label` around and skipping the call when the label has not changed avoids paying that cost on every poll. It is the same guard the bundled service uses on its own poll loop.
 
 ## From a skin
 
-A small service publishes every parsed field as a Home window property, prefixed `sidedata.` and mirroring the field paths in FIELDS.md (`rpu.header.el_type` becomes `sidedata.rpu.header.el_type`):
+A small service publishes every parsed field except the `rpu.data_mapping` subtree as a Home window property, prefixed `sidedata.` and mirroring the field paths in FIELDS.md (`rpu.header.el_type` becomes `sidedata.rpu.header.el_type`):
 
 ```xml
 $INFO[Window(Home).Property(sidedata.rpu.profile)]

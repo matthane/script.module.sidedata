@@ -1,6 +1,6 @@
 # Field reference
 
-This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.5.0. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs.
+This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.6.0. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below except the `rpu.data_mapping` subtree is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs.
 
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 primaries table, L11 content-type and whitepoint tables, the L2/L8 trim UI-scale inversion, the HDR10+ raw-code scalings) follow dovi_tool's output conventions and FFmpeg's field semantics. The test suite holds the parsed output to those tools' values on real streams.
 
@@ -389,7 +389,7 @@ Present when the sidedata carries a well formed `cll` payload (at least 4 bytes)
 
 ## Changelog
 
-### Unreleased
+### 1.6.0
 
 `rpu.header` gains `vdr_seq_info_present_flag`, `vdr_dm_metadata_present_flag`, `rpu_nal_prefix` and `reserved_zero_3bits`. `rpu` gains `num_ext_blocks`. `rpu.l11` gains `reserved_byte2` and `reserved_byte3`. `rpu.l8`, `rpu.l9` and `rpu.l10` entries gain `length`, the block's raw serialized length. Every field libdovi decodes is now published.
 
