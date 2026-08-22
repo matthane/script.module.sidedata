@@ -1,11 +1,12 @@
 # Field reference
 
-This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.6.0. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below except the `rpu.data_mapping` subtree is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See README.md's "From a skin" section for the exact naming rules for lists, trims and coordinate pairs. The service also publishes derived properties that aren't in this document's field tables: presence flags (`sidedata.present`, `sidedata.dovi.present`, `sidedata.hdr10plus.present`, `sidedata.mdcv.present`, `sidedata.cll.present`), entry counts, first/last trim aliases, and enumeration lists like `sidedata.rpu.l2.nits`, all documented in that same README section. A skin reads any of them the same way, for example `$INFO[Window(Home).Property(sidedata.rpu.profile)]`.
+This document is the field-by-field reference for the dict `parse_sidedata()` returns, as of 1.6.0. The [Changelog](#changelog) at the end describes what each release changed. Every field documented below except the `rpu.data_mapping` subtree is also published live as a Home window property, prefixed `sidedata.` and named after its path in this document. See "Window properties" below for the naming rules, the derived properties, and skin usage.
 
 Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 primaries table, L11 content-type and whitepoint tables, the L2/L8 trim UI-scale inversion, the HDR10+ raw-code scalings) follow dovi_tool's output conventions and FFmpeg's field semantics. The test suite holds the parsed output to those tools' values on real streams.
 
 ## Contents
 
+- [Window properties](#window-properties)
 - [Top level](#top-level)
 - [config](#config)
 - [rpu](#rpu)
@@ -28,6 +29,51 @@ Value scalings and name tables (PQ-to-nits, target-nits snapping, the L9/L10 pri
 - [mdcv](#mdcv)
 - [cll](#cll)
 - [Changelog](#changelog)
+
+## Window properties
+
+Every field in this document except the `rpu.data_mapping` subtree publishes live as a Home window property named `sidedata.<path>`, mirroring the field's path above (`rpu.header.el_type` becomes `sidedata.rpu.header.el_type`). A bundled service (`service.py`) keeps the properties current while something is playing; no import or python code is needed to read them.
+
+A skin reads a value with the standard window property infolabel:
+
+```xml
+$INFO[Window(Home).Property(sidedata.rpu.profile)]
+```
+
+Presence flags (see the table below) only ever publish `true`, so a skin tests for absence with `String.IsEmpty` rather than comparing against `false`. For example, to show or hide an element only when a playing Dolby Vision video also carries HDR10+:
+
+```xml
+<visible>Player.HasVideo + !String.IsEmpty(Window(Home).Property(sidedata.dovi.present)) + !String.IsEmpty(Window(Home).Property(sidedata.hdr10plus.present))</visible>
+```
+
+### Naming rules
+
+| rule | example |
+|---|---|
+| plain field path | `sidedata.rpu.header.el_type` |
+| list value (`flags`, the `hdr10plus` and `rpu.colorimetry` lists, the L8 trim vectors), space joined | `sidedata.flags` |
+| coordinate pair, splits into `.x`/`.y` | `sidedata.mdcv.primaries.red.x` |
+| L2/L8 trim, keyed by nits value. `.l2.nits`/`.l8.nits` enumerate the values present | `sidedata.rpu.l2.600.ui.gain` |
+| L10 target display, keyed by `target_display_index` (two blocks can share a nits value). `.l10.indexes` enumerates them | `sidedata.rpu.l10.0.max_pq` |
+| HDR10+ distribution, keyed by percentile. `.distribution.percentages` enumerates them | `sidedata.hdr10plus.distribution.50` |
+| collision (two blocks resolve to the same key), later ones get a dash and an ordinal | second 300 nit L2 trim: `sidedata.rpu.l2.300-2` |
+| derived: entry count for L2, L8, L10 and the HDR10+ distribution | `sidedata.rpu.l2.count` |
+| derived: L2/L8 first/last trim by nits, duplicating that entry's keyed fields | `sidedata.rpu.l2.first.ui.gain`, `sidedata.rpu.l2.last.ui.gain` |
+| derived: presence flags for the whole payload, Dolby Vision, HDR10+, MDCV and CLL | `sidedata.present`, `sidedata.dovi.present`, `sidedata.hdr10plus.present`, `sidedata.mdcv.present`, `sidedata.cll.present` |
+
+Each enumeration property lists the exact tokens in the order the blocks appeared, dash suffixes included, so a skin can walk every one by taking each token as the next path segment. Booleans publish as `true` or `false`, floats drop trailing zeros, and a field that's `None` or absent from the current frame publishes no property. Presence flags only ever publish `true`, so a skin reads absence as false with `String.IsEmpty`.
+
+Properties follow the metadata within about a tenth of a second, aligned to scene cuts, and clear when playback stops or the RPU disappears from the label. The service starts on its own once the addon is installed, with no python import needed.
+
+### Declaring the dependency
+
+A skin distributed to others should declare the module in its own `addon.xml` requires block:
+
+```xml
+<import addon="script.module.sidedata" version="1.6.0" optional="true"/>
+```
+
+Mark it `optional`: the module only exists on CoreELEC 22 Amlogic devices, and on a platform without it the properties above are simply absent, which the presence-flag pattern above already reads as false.
 
 ## Top level
 
